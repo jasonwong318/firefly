@@ -1823,7 +1823,7 @@ export default {
       if (missing.length) return jsonRes({ ok: false, error: '缺少環境變數: ' + missing.join(', ') });
       const tokenPreview = env.GITHUB_TOKEN.slice(0,8) + '...' + env.GITHUB_TOKEN.slice(-4);
       const ghBase = \`https://api.github.com/repos/\${env.GITHUB_USER}/\${env.GITHUB_REPO}/contents/\${env.GITHUB_PATH}\`;
-      const ghHdrs = { 'Authorization': \`token \${env.GITHUB_TOKEN}\`, 'Accept': 'application/vnd.github.v3+json' };
+      const ghHdrs = { 'Authorization': \`token \${env.GITHUB_TOKEN}\`, 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'Firefly-Bot/1.0' };
       const diag = { url: ghBase, token_preview: tokenPreview, token_length: env.GITHUB_TOKEN.length };
       try {
         const r = await fetch(ghBase, { headers: ghHdrs });
@@ -1860,7 +1860,7 @@ export default {
         return new Response('OK');
       }
       const ghBase = \`https://api.github.com/repos/\${env.GITHUB_USER}/\${env.GITHUB_REPO}/contents/\${env.GITHUB_PATH}\`;
-      const ghHdrs = { 'Authorization': \`token \${env.GITHUB_TOKEN}\`, 'Accept': 'application/vnd.github.v3+json' };
+      const ghHdrs = { 'Authorization': \`token \${env.GITHUB_TOKEN}\`, 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'Firefly-Bot/1.0' };
       try {
         const r = await fetch(ghBase, { headers: ghHdrs });
         if (!r.ok) {
@@ -1896,7 +1896,8 @@ export default {
     const ghHdrs = {
       'Authorization': \`token \${env.GITHUB_TOKEN}\`,
       'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'User-Agent': 'Firefly-Bot/1.0'
     };
 
     try {
