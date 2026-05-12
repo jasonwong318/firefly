@@ -590,13 +590,13 @@ body{font-family:-apple-system,'PingFang TC','Noto Sans TC','Helvetica Neue',san
     </div>
     <div class="sheet-body">
       <div style="font-size:14px;color:var(--text2);margin-bottom:16px;line-height:1.7">
-        部署一個 Cloudflare Worker 作為 Bot 後端。發連結給 Bot → 自動抓取 Metadata → 儲存到 Gitee → 在 App 中下載同步。
+        部署一個 Cloudflare Worker 作為 Bot 後端。發連結給 Bot → 自動抓取 Metadata → 儲存到 GitHub → 在 App 中下載同步。
       </div>
       <div class="step-item"><div class="step-n">1</div><div class="step-text">到 Telegram 找 <strong>@BotFather</strong>，發送 /newbot 指令，創建機器人並記下 <strong>Bot Token</strong></div></div>
       <div class="step-item"><div class="step-n">2</div><div class="step-text">登入 <strong>Cloudflare Dashboard</strong> → Workers → 建立新 Worker，貼入以下代碼</div></div>
-      <div class="step-item"><div class="step-n">3</div><div class="step-text">在 Worker 設定 <strong>環境變數</strong>：<br><code style="font-size:12px">BOT_TOKEN、GITEE_USER、GITEE_REPO、GITEE_PATH、GITEE_TOKEN</code></div></div>
+      <div class="step-item"><div class="step-n">3</div><div class="step-text">在 Worker 設定 <strong>環境變數（Variables and Secrets）</strong>：<br><code style="font-size:12px">BOT_TOKEN、GITHUB_USER、GITHUB_REPO、GITHUB_PATH、GITHUB_TOKEN</code></div></div>
       <div class="step-item"><div class="step-n">4</div><div class="step-text">複製 Worker 網址，在瀏覽器訪問以下網址設置 Webhook：<br><code style="font-size:11px;color:var(--accent)">https://api.telegram.org/bot{TOKEN}/setWebhook?url={WORKER_URL}</code></div></div>
-      <div class="step-item"><div class="step-n">5</div><div class="step-text">在 App「設定 → Gitee 雲端同步」填好設定。以後只需把連結發給 Bot，再點「⬇️ 載入」即可同步</div></div>
+      <div class="step-item"><div class="step-n">5</div><div class="step-text">在 App「設定 → GitHub 雲端同步」填好設定。以後只需把連結發給 Bot，再點「⬇️ 載入」即可同步</div></div>
 
       <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 8px">Worker 代碼（完整複製）</div>
       <div class="code-block" id="worker-code"></div>
@@ -1409,21 +1409,9 @@ function renderReview() {
 }
 
 // ════════════════════════════════════════════════════════════
-//  Gitee Sync
 // ════════════════════════════════════════════════════════════
-function loadGiteeForm() {
-  document.getElementById('g-user').value=S.gitee.user;
-  document.getElementById('g-repo').value=S.gitee.repo;
-  document.getElementById('g-path').value=S.gitee.path;
-  document.getElementById('g-token').value=S.gitee.token;
-  document.getElementById('tg-status').textContent=S.gitee.token?'Gitee 已設置':'未設置';
-  // Load Gemini key
-  const gk=document.getElementById('gem-key');
-  if(gk) gk.value=S.geminiKey?'•'.repeat(20):'';
-  const gmsg=document.getElementById('gem-msg');
-  if(gmsg) gmsg.textContent=S.geminiKey?'✅ API Key 已設置，新增書籤時將自動 AI 分析':'尚未設置';
-}
-
+//  GitHub Sync (functions above)
+// ════════════════════════════════════════════════════════════
 function saveGeminiKey() {
   const v=document.getElementById('gem-key').value.trim();
   // Don't overwrite with placeholder dots
@@ -1648,9 +1636,14 @@ export default {
       type: ytMatch ? 'video' : 'article'
     };
 
-    // Read → merge → write Gitee
-    const base = \`https://gitee.com/api/v5/repos/\${env.GITEE_USER}/\${env.GITEE_REPO}/contents/\${env.GITEE_PATH}\`;
-    const getR = await fetch(\`\${base}?access_token=\${env.GITEE_TOKEN}\`);
+    // Read → merge → write GitHub
+    const ghBase = \`https://api.github.com/repos/\${env.GITHUB_USER}/\${env.GITHUB_REPO}/contents/\${env.GITHUB_PATH}\`;
+    const ghHeaders = {
+      'Authorization': \`token \${env.GITHUB_TOKEN}\`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    };
+    const getR = await fetch(ghBase, { headers: ghHeaders });
     let sha = '', existing = { bookmarks: [], categories: [] };
     if (getR.ok) {
       const gd = await getR.json();
@@ -1667,11 +1660,11 @@ export default {
       existing.bookmarks = [bm, ...(existing.bookmarks || [])];
     }
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(existing))));
-    const body = { message: 'tg: ' + url, content, access_token: env.GITEE_TOKEN };
+    const body = { message: 'tg: ' + url, content };
     if (sha) body.sha = sha;
-    await fetch(base, {
-      method: sha ? 'PUT' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    await fetch(ghBase, {
+      method: 'PUT',
+      headers: ghHeaders,
       body: JSON.stringify(body)
     });
 
