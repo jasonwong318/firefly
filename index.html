@@ -314,6 +314,73 @@ body{font-family:-apple-system,'PingFang TC','Noto Sans TC','Helvetica Neue',san
   font-family:inherit;text-align:center;transition:all .15s}
 .note-btn.primary{background:var(--accent);color:#000;border-color:var(--accent)}
 .note-btn.gh{background:rgba(139,92,246,.12);color:#A78BFA;border-color:rgba(139,92,246,.3)}
+
+/* ── Toast ── */
+#toast{position:fixed;bottom:calc(var(--safe-b) + var(--nav-h) + 14px);left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:#1E293B;color:#F1F5F9;padding:10px 18px;border-radius:24px;
+  font-size:14px;font-weight:500;white-space:nowrap;z-index:999;
+  opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;
+  display:flex;align-items:center;gap:10px;max-width:90vw}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+.toast-undo{background:none;border:none;color:var(--accent);font-size:14px;font-weight:700;
+  cursor:pointer;padding:0;font-family:inherit;flex-shrink:0}
+
+/* ── Spin ── */
+.spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;
+  border-top-color:transparent;border-radius:50%;animation:_spin .6s linear infinite;flex-shrink:0}
+@keyframes _spin{to{transform:rotate(360deg)}}
+
+/* ── Toggle switch ── */
+.toggle{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--surface2);
+  border-radius:12px;border:1px solid var(--border);transition:.2s}
+.toggle-slider:before{content:'';position:absolute;width:18px;height:18px;
+  left:2px;bottom:2px;background:var(--text3);border-radius:50%;transition:.2s}
+.toggle input:checked+.toggle-slider{background:var(--accent);border-color:var(--accent)}
+.toggle input:checked+.toggle-slider:before{transform:translateX(20px);background:#000}
+
+/* ── Sync dot in header ── */
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);
+  flex-shrink:0;transition:background .3s;display:none}
+.sync-dot.syncing{display:block;background:var(--accent);animation:_pulse .8s ease infinite alternate}
+.sync-dot.synced{display:block;background:var(--success)}
+.sync-dot.err{display:block;background:var(--danger)}
+@keyframes _pulse{to{opacity:.25}}
+
+/* ── Theme button ── */
+.hdr-icon-btn{flex-shrink:0;width:36px;height:36px;border-radius:10px;
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text2);font-size:18px;display:flex;align-items:center;
+  justify-content:center;cursor:pointer;transition:all .15s}
+.hdr-icon-btn:active{border-color:var(--accent);color:var(--accent)}
+
+/* ── Light mode ── */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg:#F8FAFC;--surface:#FFFFFF;--surface2:#F1F5F9;--border:#E2E8F0;
+    --text:#0F172A;--text2:#475569;--text3:#94A3B8;
+    --accent:#D97706;--accent-dim:rgba(217,119,6,.12);
+    --danger:#DC2626;--success:#059669;
+  }
+  :root:not([data-theme="dark"]) #header{background:rgba(248,250,252,.96)}
+  :root:not([data-theme="dark"]) #bottom-nav{background:rgba(255,255,255,.98)}
+  :root:not([data-theme="dark"]) .card-menu-btn{background:rgba(248,250,252,.82);border-color:rgba(0,0,0,.1)}
+  :root:not([data-theme="dark"]) #toast{background:var(--text);color:var(--bg)}
+  :root:not([data-theme="dark"]) .nav-plus{box-shadow:0 4px 20px rgba(217,119,6,.4)}
+}
+html[data-theme="light"] {
+  --bg:#F8FAFC;--surface:#FFFFFF;--surface2:#F1F5F9;--border:#E2E8F0;
+  --text:#0F172A;--text2:#475569;--text3:#94A3B8;
+  --accent:#D97706;--accent-dim:rgba(217,119,6,.12);
+  --danger:#DC2626;--success:#059669;
+}
+html[data-theme="light"] #header{background:rgba(248,250,252,.96)}
+html[data-theme="light"] #bottom-nav{background:rgba(255,255,255,.98)}
+html[data-theme="light"] .card-menu-btn{background:rgba(248,250,252,.82);border-color:rgba(0,0,0,.1)}
+html[data-theme="light"] #toast{background:var(--text);color:var(--bg)}
+html[data-theme="light"] .nav-plus{box-shadow:0 4px 20px rgba(217,119,6,.4)}
 </style>
 </head>
 <body>
@@ -330,10 +397,12 @@ body{font-family:-apple-system,'PingFang TC','Noto Sans TC','Helvetica Neue',san
       <input id="srch" type="search" placeholder="搜索標題、描述、標籤…" oninput="onSearch(this.value)"
              autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     </div>
+    <button id="theme-btn" class="hdr-icon-btn" onclick="cycleTheme()" title="切換模式">🌗</button>
     <button onclick="openNotes()" style="flex-shrink:0;width:36px;height:36px;border-radius:10px;
       background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.3);
       color:#A78BFA;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer"
       title="AI 截圖筆記">📷</button>
+    <div class="sync-dot" id="sync-dot-hdr" title="自動同步狀態"></div>
     <div class="cnt-badge" id="cnt-badge">0</div>
   </div>
 </div>
@@ -377,7 +446,11 @@ body{font-family:-apple-system,'PingFang TC','Noto Sans TC','Helvetica Neue',san
       <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.6">
         申請：GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic) → 勾選 <strong>repo</strong>
       </div>
-      <div class="sync-row">
+      <div class="ss-row" style="border-top:1px solid var(--border);margin:0 -14px;padding:12px 14px">
+        <div class="ss-lbl"><strong>自動同步</strong><span>每次新增/編輯後自動上傳</span></div>
+        <label class="toggle"><input type="checkbox" id="as-toggle" onchange="saveAutoSyncSetting()"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="sync-row" style="margin-top:12px">
         <button class="ss-act prim" onclick="githubSave()">☁️ 上傳</button>
         <button class="ss-act sec" onclick="githubLoad()">⬇️ 載入</button>
       </div>
@@ -396,19 +469,36 @@ body{font-family:-apple-system,'PingFang TC','Noto Sans TC','Helvetica Neue',san
       <div id="ob-msg" class="sync-msg"></div>
     </div></div>
 
-    <div class="ss-title">🤖 AI 自動標籤（Gemini）</div>
+    <div class="ss-title">🤖 AI 設定</div>
     <div class="ss"><div class="ss-card ss-pad">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.7;background:var(--accent-dim);border-radius:var(--r-sm);padding:10px">
+        🚀 <strong>Groq</strong>（書籤自動標籤）速度更快、更聰明<br>
+        🔬 <strong>Gemini</strong>（截圖筆記）支援圖片/PDF，必須填寫<br>
+        兩者皆填時，標籤用 Groq，截圖筆記用 Gemini
+      </div>
       <div class="fg">
-        <label class="fl">Gemini API Key
+        <label class="fl">🚀 Groq API Key（書籤標籤）
+          <span style="font-size:10px;font-weight:400;color:var(--success);margin-left:6px;text-transform:none">免費</span>
+        </label>
+        <input type="password" class="fi" id="groq-key" placeholder="gsk_…">
+        <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.6">
+          免費申請：<span style="color:var(--accent)">console.groq.com</span> → API Keys → Google 帳號登入即可<br>
+          模型：llama-3.3-70b · 每天 14,400 次
+        </div>
+      </div>
+      <button class="save-btn" style="margin-top:0;padding:11px;margin-bottom:14px" onclick="saveGroqKey()">💾 儲存 Groq Key</button>
+      <div id="groq-msg" class="sync-msg" style="margin-bottom:12px"></div>
+      <div class="fg">
+        <label class="fl">🔬 Gemini API Key（截圖筆記）
           <span style="font-size:10px;font-weight:400;color:var(--success);margin-left:6px;text-transform:none">免費</span>
         </label>
         <input type="password" class="fi" id="gem-key" placeholder="AIzaSy…">
         <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.6">
           免費申請：<span style="color:var(--accent)">aistudio.google.com</span> → Get API Key → 無需信用卡<br>
-          每分鐘 15 次，個人使用綽綽有餘
+          每分鐘 15 次 · 支援圖片/PDF 分析
         </div>
       </div>
-      <button class="save-btn" style="margin-top:0;padding:11px" onclick="saveGeminiKey()">💾 儲存 API Key</button>
+      <button class="save-btn" style="margin-top:0;padding:11px" onclick="saveGeminiKey()">💾 儲存 Gemini Key</button>
       <div id="gem-msg" class="sync-msg"></div>
     </div></div>
 
@@ -421,6 +511,31 @@ body{font-family:-apple-system,'PingFang TC','Noto Sans TC','Helvetica Neue',san
       <div class="ss-row">
         <div class="ss-lbl"><strong>我的 Bot Token</strong><span>設置後顯示已連接狀態</span></div>
         <div id="tg-status" style="font-size:12px;color:var(--text3)">未設置</div>
+      </div>
+      <div class="ss-row" style="flex-direction:column;align-items:stretch;gap:8px">
+        <div class="ss-lbl"><strong>Worker URL</strong><span>填入後封面圖取得率大幅提升（小紅書/Threads 等）</span></div>
+        <div style="display:flex;gap:8px">
+          <input type="url" class="fi" id="worker-url-inp" placeholder="https://your-worker.xxx.workers.dev" style="flex:1;font-size:13px">
+          <button class="ss-act" onclick="saveWorkerUrl()">儲存</button>
+        </div>
+        <div id="worker-url-msg" class="sync-msg"></div>
+      </div>
+    </div></div>
+
+    <div class="ss-title">📱 iOS 捷徑（分享書籤）</div>
+    <div class="ss"><div class="ss-card ss-pad">
+      <div class="fg"><label class="fl">Firefly App 網址</label>
+        <input type="url" class="fi" id="app-url" placeholder="https://jasonwong318.github.io/firefly/">
+      </div>
+      <button class="save-btn" style="margin-top:0;padding:11px" onclick="copyShortcutInstructions()">📋 複製捷徑 URL</button>
+      <div id="shortcut-msg" class="sync-msg"></div>
+      <div style="font-size:12px;color:var(--text2);margin-top:12px;line-height:1.8">
+        <strong style="color:var(--text)">設置步驟（iOS 捷徑 App）</strong><br>
+        1. 新增捷徑 → 搜尋「URL」動作，選「取得 URL」（接受分享單）<br>
+        2. 加「打開 URL」動作，URL 填入上方複製的連結<br>
+        3. 捷徑設定 → 加入「分享單」<br>
+        4. 在 YouTube / Threads / 小紅書等 App 分享頁面 → 選此捷徑<br>
+        5. Firefly 自動開啟並填入連結，點「自動獲取」即完成
       </div>
     </div></div>
 
@@ -590,13 +705,13 @@ body{font-family:-apple-system,'PingFang TC','Noto Sans TC','Helvetica Neue',san
     </div>
     <div class="sheet-body">
       <div style="font-size:14px;color:var(--text2);margin-bottom:16px;line-height:1.7">
-        部署一個 Cloudflare Worker 作為 Bot 後端。發連結給 Bot → 自動抓取 Metadata → 儲存到 Gitee → 在 App 中下載同步。
+        部署一個 Cloudflare Worker 作為 Bot 後端。發連結給 Bot → 自動抓取 Metadata → 儲存到 GitHub → 在 App 中下載同步。
       </div>
       <div class="step-item"><div class="step-n">1</div><div class="step-text">到 Telegram 找 <strong>@BotFather</strong>，發送 /newbot 指令，創建機器人並記下 <strong>Bot Token</strong></div></div>
       <div class="step-item"><div class="step-n">2</div><div class="step-text">登入 <strong>Cloudflare Dashboard</strong> → Workers → 建立新 Worker，貼入以下代碼</div></div>
-      <div class="step-item"><div class="step-n">3</div><div class="step-text">在 Worker 設定 <strong>環境變數</strong>：<br><code style="font-size:12px">BOT_TOKEN、GITEE_USER、GITEE_REPO、GITEE_PATH、GITEE_TOKEN</code></div></div>
+      <div class="step-item"><div class="step-n">3</div><div class="step-text">在 Worker 設定 <strong>環境變數（Variables and Secrets）</strong>：<br><code style="font-size:12px">BOT_TOKEN、GITHUB_USER、GITHUB_REPO、GITHUB_PATH、GITHUB_TOKEN</code></div></div>
       <div class="step-item"><div class="step-n">4</div><div class="step-text">複製 Worker 網址，在瀏覽器訪問以下網址設置 Webhook：<br><code style="font-size:11px;color:var(--accent)">https://api.telegram.org/bot{TOKEN}/setWebhook?url={WORKER_URL}</code></div></div>
-      <div class="step-item"><div class="step-n">5</div><div class="step-text">在 App「設定 → Gitee 雲端同步」填好設定。以後只需把連結發給 Bot，再點「⬇️ 載入」即可同步</div></div>
+      <div class="step-item"><div class="step-n">5</div><div class="step-text">在 App「設定 → GitHub 雲端同步」填好設定。以後只需把連結發給 Bot，再點「⬇️ 載入」即可同步</div></div>
 
       <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 8px">Worker 代碼（完整複製）</div>
       <div class="code-block" id="worker-code"></div>
@@ -665,6 +780,8 @@ body{font-family:-apple-system,'PingFang TC','Noto Sans TC','Helvetica Neue',san
 //  Constants
 // ════════════════════════════════════════════════════════════
 const SK = 'firefly_v1', HK = 'firefly_github', OK = 'firefly_obsidian', AK = 'firefly_ai';
+const TK = 'firefly_theme', SYK = 'firefly_autosync', RVK = 'firefly_review_today', PK = 'firefly_prefs';
+const GK = 'firefly_groq', WK = 'firefly_worker';
 
 const SRC = {
   youtube:     { label:'YouTube',   icon:'▶️' },
@@ -695,7 +812,12 @@ let S = {
   github: { user:'', repo:'', path:'firefly.json', token:'' },
   obsidian: { repo:'', folder:'raw', token:'' },
   geminiKey: '',
-  noteImages: []   // uploaded images for AI notes
+  groqKey: '',
+  workerUrl: '',
+  noteImages: [],
+  theme: 'auto',
+  autoSync: false,
+  appUrl: ''
 };
 
 // ════════════════════════════════════════════════════════════
@@ -703,6 +825,7 @@ let S = {
 // ════════════════════════════════════════════════════════════
 function persist() {
   localStorage.setItem(SK, JSON.stringify({ bookmarks: S.bookmarks, categories: S.categories }));
+  scheduleAutoSync();
 }
 function loadStore() {
   try {
@@ -720,6 +843,26 @@ function loadStore() {
   try {
     const ak = localStorage.getItem(AK);
     if (ak) S.geminiKey = ak;
+  } catch(e){}
+  try {
+    const gk = localStorage.getItem(GK);
+    if (gk) S.groqKey = gk;
+  } catch(e){}
+  try {
+    const wk = localStorage.getItem(WK);
+    if (wk) S.workerUrl = wk;
+  } catch(e){}
+  try {
+    const th = localStorage.getItem(TK);
+    if (th) S.theme = th;
+  } catch(e){}
+  try {
+    const sy = JSON.parse(localStorage.getItem(SYK) || 'null');
+    if (sy != null) S.autoSync = !!sy;
+  } catch(e){}
+  try {
+    const pr = JSON.parse(localStorage.getItem(PK) || 'null');
+    if (pr && pr.appUrl) S.appUrl = pr.appUrl;
   } catch(e){}
 }
 
@@ -951,7 +1094,7 @@ function openAdd() {
   document.getElementById('add-ov').classList.add('open');
   // Show AI key status
   const aiStatus=document.getElementById('ai-status');
-  if(aiStatus) aiStatus.textContent=S.geminiKey?'已設置 ✓':'未設置';
+  if(aiStatus) aiStatus.textContent=S.groqKey?'Groq ✓':S.geminiKey?'Gemini ✓':'未設置';
   setTimeout(()=>document.getElementById('f-url').focus(),380);
 }
 
@@ -1052,31 +1195,69 @@ async function fetchMeta() {
   // ── General og: metadata via proxy (非 YouTube 才用)
   let title='', desc='', img='';
   if(!ytId) {
-    const proxies=[
-      `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-    ];
     let fetched=false;
-    for(const proxy of proxies){
+
+    // 0. Cloudflare Worker /meta — 最可靠，伺服器端抓取無 CORS 限制
+    if(S.workerUrl&&!fetched){
       try{
-        const r=await fetch(proxy,{signal:AbortSignal.timeout(6000)});
-        if(!r.ok) continue;
-        const raw=await r.text();
-        const h=proxy.includes('allorigins')?(JSON.parse(raw).contents||''):raw;
-        if(!h||h.length<100) continue;
-        const og=p=>{
-          const m=h.match(new RegExp(`<meta[^>]+(?:property|name)=["']${p}["'][^>]*content=["']([^"'<>]{1,300})["']`,'i'))
-                 ||h.match(new RegExp(`<meta[^>]+content=["']([^"'<>]{1,300})["'][^>]*(?:property|name)=["']${p}["']`,'i'));
-          return m?dehtml(m[1].trim()):'';
-        };
-        const t=og('og:title')||og('twitter:title')||(h.match(/<title[^>]*>([^<]{1,200})<\/title>/i)||[])[1]||'';
-        const de=og('og:description')||og('twitter:description')||og('description')||'';
-        const im=og('og:image')||og('twitter:image')||'';
-        if(t){title=t.trim().slice(0,200);desc=de.trim().slice(0,500);if(!img)img=im;fetched=true;break;}
-        if(de) desc=de.trim().slice(0,500);
-        if(im) img=im;
-      } catch(e){continue;}
+        const wRes=await fetch(`${S.workerUrl}/meta?url=${encodeURIComponent(url)}`,
+          {signal:AbortSignal.timeout(8000)});
+        if(wRes.ok){
+          const wd=await wRes.json();
+          if(wd.title){
+            title=wd.title; desc=wd.description||''; img=wd.image||'';
+            if(wd.type&&TICO[wd.type]){S.curType=wd.type;document.querySelectorAll('.type-btn').forEach(b=>b.classList.toggle('on',b.dataset.t===wd.type));}
+            fetched=true;
+          }
+        }
+      }catch(e){}
     }
+
+    // 1. microlink.io — 專為社群媒體設計，支援小紅書/Threads/Facebook 等
+    try{
+      const ml=await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}&meta=true`,
+        {signal:AbortSignal.timeout(8000)});
+      if(ml.ok){
+        const mj=await ml.json();
+        if(mj.status==='success'&&mj.data){
+          const d=mj.data;
+          if(d.title) title=d.title.trim().slice(0,200);
+          if(d.description) desc=d.description.trim().slice(0,500);
+          if(d.image?.url) img=d.image.url;
+          if(d.logo?.url&&!img) img=d.logo.url;
+          if(title) fetched=true;
+        }
+      }
+    }catch(e){}
+
+    // 2. allorigins + codetabs — 通用 HTML 代理作備援
+    if(!fetched){
+      const proxies=[
+        {url:`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,type:'allorigins'},
+        {url:`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,type:'raw'},
+      ];
+      for(const p of proxies){
+        try{
+          const r=await fetch(p.url,{signal:AbortSignal.timeout(7000)});
+          if(!r.ok) continue;
+          const raw=await r.text();
+          const h=p.type==='allorigins'?(JSON.parse(raw).contents||''):raw;
+          if(!h||h.length<100) continue;
+          const og=name=>{
+            const m=h.match(new RegExp(`<meta[^>]+(?:property|name)=["']${name}["'][^>]*content=["']([^"'<>]{1,300})["']`,'i'))
+                   ||h.match(new RegExp(`<meta[^>]+content=["']([^"'<>]{1,300})["'][^>]*(?:property|name)=["']${name}["']`,'i'));
+            return m?dehtml(m[1].trim()):'';
+          };
+          const t=og('og:title')||og('twitter:title')||(h.match(/<title[^>]*>([^<]{1,200})<\/title>/i)||[])[1]||'';
+          const de=og('og:description')||og('twitter:description')||og('description')||'';
+          const im=og('og:image')||og('twitter:image')||'';
+          if(t){title=t.trim().slice(0,200);if(!desc)desc=de.trim().slice(0,500);if(!img)img=im;fetched=true;break;}
+          if(de&&!desc) desc=de.trim().slice(0,500);
+          if(im&&!img) img=im;
+        }catch(e){continue;}
+      }
+    }
+
     if(title&&!document.getElementById('f-title').value) document.getElementById('f-title').value=title;
     if(desc&&!document.getElementById('f-desc').value) document.getElementById('f-desc').value=desc;
     if(img&&!document.getElementById('f-thumb').value) document.getElementById('f-thumb').value=img;
@@ -1088,68 +1269,59 @@ async function fetchMeta() {
   else if(ytId) toast('✅ YouTube 縮圖已就緒，正在 AI 分析…');
   btn.innerHTML=`${FETCH_ICON} 自動獲取`; btn.disabled=false;
 
-  // ── Auto-trigger AI tagging if key is set
-  if(S.geminiKey) {
+  // ── Auto-trigger AI tagging if any key is set
+  if(S.groqKey||S.geminiKey) {
     const t=document.getElementById('f-title').value;
     const de=document.getElementById('f-desc').value;
     if(t||de) await aiTag(t, de, url);
   }
 }
 
-// ── Gemini AI Auto-Tagging
+// ── AI Auto-Tagging (Groq first, Gemini fallback)
 async function aiTag(title, desc, url) {
-  if(!S.geminiKey){ toast('請先在設定填入 Gemini API Key'); return; }
+  if(!S.groqKey&&!S.geminiKey){ toast('請先在設定填入 Groq 或 Gemini API Key'); return; }
   const aiBtn=document.getElementById('ai-btn');
   if(aiBtn){ aiBtn.innerHTML='<span class="spin"></span> AI 分析中…'; aiBtn.disabled=true; }
+  const cats=S.categories.join('、')||'設計靈感、技術學習、旅遊、商業、美食';
+  const prompt=`你是個人知識管理助手。根據以下書籤，只回覆 JSON，不要其他文字：\nURL: ${url}\n標題: ${title}\n描述: ${desc}\n\n{"tags":["標籤1","標籤2","標籤3"],"category":"從此清單選一個或新建：${cats}","type":"article或video或image或post或website或other"}`;
   try {
-    const cats = S.categories.join('、') || '設計靈感、技術學習、旅遊、商業、美食';
-    const prompt=`你是一個個人知識管理助手。根據以下書籤資訊，用繁體中文回覆 JSON（只回 JSON，不要說其他話）：
-URL: ${url}
-標題: ${title}
-描述: ${desc}
-
-請回覆：
-{
-  "tags": ["標籤1","標籤2","標籤3"],
-  "category": "最合適的分類（從此清單選一個：${cats}，如都不合適可新建）",
-  "type": "article 或 video 或 image 或 post 或 website 或 other"
-}`;
-
-    const r=await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${S.geminiKey}`,
-      { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ contents:[{ parts:[{ text: prompt }] }],
-          generationConfig:{ maxOutputTokens:300, temperature:0.3 } }) }
-    );
-    if(!r.ok){ const e=await r.json(); throw new Error(e.error?.message||r.status); }
-    const data=await r.json();
-    const raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
-    const clean=raw.replace(/```json|```/g,'').trim();
-    const parsed=JSON.parse(clean);
-
-    // Apply tags
+    let raw='';
+    if(S.groqKey){
+      const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':`Bearer ${S.groqKey}`},
+        body:JSON.stringify({model:'llama-3.3-70b-versatile',
+          messages:[{role:'user',content:prompt}],max_tokens:300,temperature:0.3})
+      });
+      if(!r.ok){const e=await r.json();throw new Error(e.error?.message||r.status);}
+      const data=await r.json();
+      raw=data.choices?.[0]?.message?.content||'';
+    } else {
+      const r=await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${S.geminiKey}`,
+        {method:'POST',headers:{'Content-Type':'application/json'},
+         body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:300,temperature:0.3}})}
+      );
+      if(!r.ok){const e=await r.json();throw new Error(e.error?.message||r.status);}
+      const data=await r.json();
+      raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    }
+    const parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());
     if(Array.isArray(parsed.tags)) parsed.tags.forEach(t=>addTag(t));
-
-    // Apply category
-    if(parsed.category) {
+    if(parsed.category){
       if(!S.categories.includes(parsed.category)) S.categories.push(parsed.category);
-      persist();
-      renderCatSelect();
+      persist(); renderCatSelect();
       document.getElementById('f-cat').value=parsed.category;
     }
-
-    // Apply type
-    if(parsed.type && TICO[parsed.type]) {
+    if(parsed.type&&TICO[parsed.type]){
       S.curType=parsed.type;
       document.querySelectorAll('.type-btn').forEach(b=>b.classList.toggle('on',b.dataset.t===parsed.type));
     }
-
-    toast('🤖 AI 已自動填入標籤和分類');
+    toast(`🤖 ${S.groqKey?'Groq':'Gemini'} 已自動填入標籤和分類`);
   } catch(e){
-    console.error('Gemini error',e);
     toast('⚠️ AI 分析失敗：'+e.message.slice(0,40));
   }
-  if(aiBtn){ aiBtn.innerHTML='🤖 AI 分析'; aiBtn.disabled=false; }
+  if(aiBtn){ aiBtn.innerHTML='🤖 AI 自動標籤'; aiBtn.disabled=false; }
 }
 
 // Manual AI tag trigger
@@ -1167,6 +1339,11 @@ function saveBm() {
   if(tiVal) addTag(tiVal);
   if(!url){document.getElementById('f-url').focus();toast('⚠️ 請填寫 URL');return;}
   if(!title){document.getElementById('f-title').focus();toast('⚠️ 請填寫標題');return;}
+  // Duplicate URL check (only for new bookmarks)
+  if(!eid){
+    const dup=S.bookmarks.find(b=>b.url===url);
+    if(dup&&!confirm(`此連結已存在：\n「${dup.title}」\n\n是否仍要保存？`)) return;
+  }
   const data={
     url,title,
     description:document.getElementById('f-desc').value.trim(),
@@ -1179,7 +1356,7 @@ function saveBm() {
   const eid=document.getElementById('f-id').value;
   if(eid){
     const i=S.bookmarks.findIndex(b=>b.id===eid);
-    if(i>=0) S.bookmarks[i]={...S.bookmarks[i],...data};
+    if(i>=0) S.bookmarks[i]={...S.bookmarks[i],...data,updatedAt:new Date().toISOString()};
     toast('✏️ 已更新書籤');
   } else {
     data.id=uid(); data.createdAt=new Date().toISOString();
@@ -1189,9 +1366,23 @@ function saveBm() {
   persist(); closeAdd(); renderAll();
 }
 
+let _deletedBm=null;
 function delBm(id) {
+  _deletedBm=S.bookmarks.find(x=>x.id===id)||null;
   S.bookmarks=S.bookmarks.filter(b=>b.id!==id);
-  persist(); closeDet(); renderAll(); toast('🗑️ 已刪除');
+  persist(); closeDet(); renderAll();
+  // Toast with undo
+  const el=document.getElementById('toast');
+  const label=_deletedBm?((_deletedBm.title||'書籤').slice(0,20)):'書籤';
+  el.innerHTML=`🗑️ 已刪除「${esc(label)}」 <button class="toast-undo" onclick="undoDel()">↩️ 復原</button>`;
+  el.classList.add('show');
+  clearTimeout(_toastT);
+  _toastT=setTimeout(()=>{el.classList.remove('show');_deletedBm=null;},5000);
+}
+function undoDel(){
+  if(!_deletedBm) return;
+  S.bookmarks.unshift(_deletedBm); _deletedBm=null;
+  persist(); renderAll(); toast('↩️ 已復原');
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1337,6 +1528,7 @@ function srRate(id, quality) {
   const next=new Date();
   next.setDate(next.getDate()+sr.interval);
   sr.nextReview=next.toISOString().slice(0,10);
+  markReviewed(id);
   persist();
   S.revIdx++;
   renderReview();
@@ -1346,9 +1538,21 @@ function srRate(id, quality) {
   toast(msg,2000);
 }
 
+function getTodayReviewed(){
+  try{
+    const r=JSON.parse(localStorage.getItem(RVK)||'null');
+    if(r&&r.date===todayStr()) return new Set(r.ids||[]);
+  }catch(e){}
+  return new Set();
+}
+function markReviewed(id){
+  const s=getTodayReviewed(); s.add(id);
+  localStorage.setItem(RVK,JSON.stringify({date:todayStr(),ids:[...s]}));
+}
 function dueItems() {
   const today=todayStr();
-  return S.bookmarks.filter(b=>b.sr&&b.sr.nextReview&&b.sr.nextReview<=today);
+  const reviewed=getTodayReviewed();
+  return S.bookmarks.filter(b=>b.sr&&b.sr.nextReview&&b.sr.nextReview<=today&&!reviewed.has(b.id));
 }
 
 function renderRevDot() {
@@ -1409,21 +1613,29 @@ function renderReview() {
 }
 
 // ════════════════════════════════════════════════════════════
-//  Gitee Sync
 // ════════════════════════════════════════════════════════════
-function loadGiteeForm() {
-  document.getElementById('g-user').value=S.gitee.user;
-  document.getElementById('g-repo').value=S.gitee.repo;
-  document.getElementById('g-path').value=S.gitee.path;
-  document.getElementById('g-token').value=S.gitee.token;
-  document.getElementById('tg-status').textContent=S.gitee.token?'Gitee 已設置':'未設置';
-  // Load Gemini key
-  const gk=document.getElementById('gem-key');
-  if(gk) gk.value=S.geminiKey?'•'.repeat(20):'';
-  const gmsg=document.getElementById('gem-msg');
-  if(gmsg) gmsg.textContent=S.geminiKey?'✅ API Key 已設置，新增書籤時將自動 AI 分析':'尚未設置';
+//  GitHub Sync (functions above)
+// ════════════════════════════════════════════════════════════
+function saveWorkerUrl() {
+  const v=document.getElementById('worker-url-inp').value.trim().replace(/\/$/,'');
+  S.workerUrl=v;
+  if(v) localStorage.setItem(WK,v); else localStorage.removeItem(WK);
+  const msg=document.getElementById('worker-url-msg');
+  if(msg) msg.textContent=v?'✅ 已儲存！fetchMeta 將優先使用 Worker':'已清除 Worker URL';
+  toast(v?'🔧 Worker URL 已儲存':'已清除 Worker URL');
 }
-
+function saveGroqKey() {
+  const v=document.getElementById('groq-key').value.trim();
+  if(v&&!v.match(/^•+$/)){
+    S.groqKey=v; localStorage.setItem(GK,v);
+    document.getElementById('groq-msg').textContent='✅ 已儲存！書籤標籤將使用 Groq llama-3.3-70b';
+    toast('🚀 Groq API Key 已儲存');
+  } else if(!v){
+    S.groqKey=''; localStorage.removeItem(GK);
+    document.getElementById('groq-msg').textContent='已清除，改用 Gemini';
+    toast('已清除 Groq Key');
+  }
+}
 function saveGeminiKey() {
   const v=document.getElementById('gem-key').value.trim();
   // Don't overwrite with placeholder dots
@@ -1454,10 +1666,22 @@ function loadGithubForm() {
   document.getElementById('ob-folder').value=S.obsidian.folder;
   const tgs=document.getElementById('tg-status');
   if(tgs) tgs.textContent=S.github.token?'GitHub 已設置':'未設置';
+  const ast=document.getElementById('as-toggle');
+  if(ast) ast.checked=S.autoSync;
+  const apu=document.getElementById('app-url');
+  if(apu&&S.appUrl) apu.value=S.appUrl;
+  const wui=document.getElementById('worker-url-inp');
+  if(wui) wui.value=S.workerUrl||'';
+  const wum=document.getElementById('worker-url-msg');
+  if(wum) wum.textContent=S.workerUrl?`✅ Worker 已設置：${S.workerUrl}`:'未設置（設置後封面圖取得率大幅提升）';
   const gk=document.getElementById('gem-key');
   if(gk) gk.value=S.geminiKey?'•'.repeat(20):'';
   const gmsg=document.getElementById('gem-msg');
-  if(gmsg) gmsg.textContent=S.geminiKey?'✅ API Key 已設置':'尚未設置';
+  if(gmsg) gmsg.textContent=S.geminiKey?'✅ Gemini Key 已設置':'尚未設置';
+  const grk=document.getElementById('groq-key');
+  if(grk) grk.value=S.groqKey?'•'.repeat(20):'';
+  const grmsg=document.getElementById('groq-msg');
+  if(grmsg) grmsg.textContent=S.groqKey?'✅ Groq Key 已設置（標籤優先使用）':'尚未設置';
   const obMsg=document.getElementById('ob-msg');
   if(obMsg) obMsg.textContent=S.obsidian.repo?`✅ Vault 倉庫：${S.obsidian.repo} / ${S.obsidian.folder}`:'尚未設置';
 }
@@ -1585,11 +1809,27 @@ function updateStats() {
 // ════════════════════════════════════════════════════════════
 //  Telegram Guide
 // ════════════════════════════════════════════════════════════
-const WORKER_CODE=`// Cloudflare Worker — Firefly Telegram Bot
-// 環境變數：BOT_TOKEN, GITEE_USER, GITEE_REPO, GITEE_PATH, GITEE_TOKEN
+const WORKER_CODE=`// Cloudflare Worker — Firefly Telegram Bot + Meta API v2
+// 環境變數：BOT_TOKEN, GITHUB_USER, GITHUB_REPO, GITHUB_PATH, GITHUB_TOKEN
 
 export default {
   async fetch(request, env) {
+    const reqUrl = new URL(request.url);
+
+    // CORS preflight
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders() });
+    }
+
+    // GET /meta — Firefly App 呼叫，取得任意 URL 的 metadata（標題/描述/封面圖）
+    if (request.method === 'GET' && reqUrl.pathname === '/meta') {
+      const target = reqUrl.searchParams.get('url');
+      if (!target) return jsonRes({ error: 'missing url' }, 400);
+      const meta = await fetchUrlMeta(target);
+      return jsonRes(meta);
+    }
+
+    // POST / — Telegram Bot webhook
     if (request.method !== 'POST') return new Response('OK');
     const update = await request.json();
     const msg = update.message?.text || '';
@@ -1602,89 +1842,104 @@ export default {
       return new Response('OK');
     }
     const url = urlMatch[0];
-    const src = detectSrc(url);
-
-    // ── YouTube: extract thumbnail directly (100% reliable)
-    let title = '', desc = '', thumb = '';
-    const ytMatch = url.match(/(?:v=|youtu\\.be\\/|shorts\\/)([A-Za-z0-9_-]{11})/);
-    if (ytMatch) {
-      thumb = \`https://img.youtube.com/vi/\${ytMatch[1]}/hqdefault.jpg\`;
-    }
-
-    // ── Direct server-side fetch (Worker = Cloudflare server, no browser restrictions)
-    // This works for XiaoHongShu, Instagram, general sites — same as Telegram's preview
-    try {
-      const r = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
-          'Accept': 'text/html,application/xhtml+xml',
-          'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
-        },
-        redirect: 'follow',
-        cf: { cacheTtl: 300 }
-      });
-      const h = await r.text();
-      const og = p => {
-        const m = h.match(new RegExp(\`<meta[^>]+(?:property|name)=["']\${p}["'][^>]*content=["']([^"'<>]{1,400})["']\`, 'i'))
-               || h.match(new RegExp(\`<meta[^>]+content=["']([^"'<>]{1,400})["'][^>]*(?:property|name)=["']\${p}["']\`, 'i'));
-        return m ? m[1].trim() : '';
-      };
-      const t = og('og:title') || og('twitter:title') || (h.match(/<title[^>]*>([^<]{1,200})<\\/title>/i)||[])[1] || '';
-      const de = og('og:description') || og('twitter:description') || og('description') || '';
-      const im = og('og:image') || og('twitter:image') || '';
-      if (t) title = t.slice(0, 200);
-      if (de) desc = de.slice(0, 400);
-      if (im && !thumb) thumb = im;
-    } catch(e) {
-      // ignore fetch error, use URL as title fallback
-    }
-    if (!title) title = url;
+    const meta = await fetchUrlMeta(url);
 
     const bm = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2,5),
-      url, title, description: desc, thumbnail: thumb,
-      source: src, tags: [], category: '',
-      createdAt: new Date().toISOString(),
-      type: ytMatch ? 'video' : 'article'
+      url, title: meta.title || url,
+      description: meta.description, thumbnail: meta.image,
+      source: meta.source, tags: [], category: '',
+      createdAt: new Date().toISOString(), type: meta.type
     };
 
-    // Read → merge → write Gitee
-    const base = \`https://gitee.com/api/v5/repos/\${env.GITEE_USER}/\${env.GITEE_REPO}/contents/\${env.GITEE_PATH}\`;
-    const getR = await fetch(\`\${base}?access_token=\${env.GITEE_TOKEN}\`);
+    const ghBase = \`https://api.github.com/repos/\${env.GITHUB_USER}/\${env.GITHUB_REPO}/contents/\${env.GITHUB_PATH}\`;
+    const ghHdrs = {
+      'Authorization': \`token \${env.GITHUB_TOKEN}\`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    };
+    const getR = await fetch(ghBase, { headers: ghHdrs });
     let sha = '', existing = { bookmarks: [], categories: [] };
     if (getR.ok) {
       const gd = await getR.json();
       sha = gd.sha || '';
-      try {
-        existing = JSON.parse(
-          decodeURIComponent(escape(atob(gd.content.replace(/\\n/g, ''))))
-        );
-      } catch(e) {}
+      try { existing = JSON.parse(decodeURIComponent(escape(atob(gd.content.replace(/\\n/g, ''))))); } catch(e) {}
     }
-    // Prepend new bookmark (avoid duplicates by URL)
     const alreadyExists = (existing.bookmarks||[]).some(b => b.url === url);
-    if (!alreadyExists) {
-      existing.bookmarks = [bm, ...(existing.bookmarks || [])];
-    }
+    if (!alreadyExists) existing.bookmarks = [bm, ...(existing.bookmarks||[])];
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(existing))));
-    const body = { message: 'tg: ' + url, content, access_token: env.GITEE_TOKEN };
+    const body = { message: 'tg: ' + url, content };
     if (sha) body.sha = sha;
-    await fetch(base, {
-      method: sha ? 'PUT' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
+    await fetch(ghBase, { method: 'PUT', headers: ghHdrs, body: JSON.stringify(body) });
 
-    const replyIcon = { youtube:'▶️', xiaohongshu:'📕', instagram:'📷', facebook:'👥', douyin:'🎵' }[src] || '🔗';
+    const icon = { youtube:'▶️', xiaohongshu:'📕', instagram:'📷', facebook:'👥', douyin:'🎵' }[meta.source] || '🔗';
     await tgSend(env.BOT_TOKEN, chatId,
       alreadyExists
-        ? \`⚠️ 此連結已存在於書籤中\\n\\n📌 \${title}\`
-        : \`✅ 已保存！\\n\\n\${replyIcon} \${title}\\n\\n在 Firefly App 點「⬇️ 載入」即可看到\`
+        ? \`⚠️ 此連結已存在\\n\\n📌 \${meta.title}\`
+        : \`✅ 已保存！\\n\\n\${icon} \${meta.title}\\n\\n在 App 點「⬇️ 載入」同步\`
     );
     return new Response('OK');
   }
 };
 
+// ── 共用 metadata 抓取（/meta 端點 + Telegram bot 共用）
+async function fetchUrlMeta(url) {
+  let title = '', desc = '', thumb = '', type = 'article';
+  const src = detectSrc(url);
+
+  const ytMatch = url.match(/(?:v=|youtu\\.be\\/|shorts\\/)([A-Za-z0-9_-]{11})/);
+  if (ytMatch) {
+    thumb = \`https://img.youtube.com/vi/\${ytMatch[1]}/hqdefault.jpg\`;
+    type = 'video';
+    try {
+      const oe = await fetch(\`https://www.youtube.com/oembed?url=\${encodeURIComponent(url)}&format=json\`);
+      if (oe.ok) {
+        const od = await oe.json();
+        if (od.title) title = od.title;
+        if (od.thumbnail_url) thumb = od.thumbnail_url;
+        if (od.author_name) desc = \`\${od.author_name} 的 YouTube 影片\`;
+      }
+    } catch(e) {}
+    return { title, description: desc, image: thumb, type, source: src };
+  }
+
+  try {
+    const r = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
+      },
+      redirect: 'follow',
+      cf: { cacheTtl: 300 }
+    });
+    const h = await r.text();
+    const og = p => {
+      const m = h.match(new RegExp(\`<meta[^>]+(?:property|name)=["']\${p}["'][^>]*content=["']([^"'<>]{1,500})["']\`, 'i'))
+               || h.match(new RegExp(\`<meta[^>]+content=["']([^"'<>]{1,500})["'][^>]*(?:property|name)=["']\${p}["']\`, 'i'));
+      return m ? m[1].trim() : '';
+    };
+    title = og('og:title') || og('twitter:title') || (h.match(/<title[^>]*>([^<]{1,200})<\\/title>/i)||[])[1] || '';
+    desc  = og('og:description') || og('twitter:description') || og('description') || '';
+    thumb = og('og:image') || og('twitter:image') || '';
+    if (og('og:type').includes('video')) type = 'video';
+  } catch(e) {}
+
+  return { title: (title||url).slice(0,200), description: desc.slice(0,500), image: thumb, type, source: src };
+}
+
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+}
+function jsonRes(data, status=200) {
+  return new Response(JSON.stringify(data), {
+    status, headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+  });
+}
 async function tgSend(token, chatId, text) {
   await fetch(\`https://api.telegram.org/bot\${token}/sendMessage\`, {
     method: 'POST',
@@ -1692,7 +1947,6 @@ async function tgSend(token, chatId, text) {
     body: JSON.stringify({ chat_id: chatId, text })
   });
 }
-
 function detectSrc(url) {
   const u = url.toLowerCase();
   const m = [
@@ -1833,7 +2087,7 @@ function getNoteTitle(){
   const md=getNoteContent();
   const m=md.match(/^#\s+(.+)/m);
   const raw=m?m[1]:document.getElementById('notes-title').value||'Firefly筆記';
-  return raw.replace(/[\/\\:*?"<>|]/g,'-').trim().slice(0,80);
+  return raw.replace(/[\/\\:*?"<>|]/g,'-').replace(/\s+/g,'-').trim().slice(0,80);
 }
 
 function copyNote(){
@@ -1873,8 +2127,14 @@ async function saveToObsidian(){
     const r=await fetch(`https://api.github.com/repos/${g.user}/${o.repo}/contents/${fileName}`,
       {method:'PUT',headers:ghHeaders(g.token),body:JSON.stringify(body)});
     if(r.ok){
-      obsMsg.textContent=`✅ 已存入：${o.repo}/${fileName}`;
-      toast('📓 筆記已存入 Obsidian Vault！');
+      const ghUrl=`https://github.com/${g.user}/${o.repo}/blob/main/${fileName.replace(/ /g,'%20')}`;
+      obsMsg.innerHTML=`✅ 已上傳至 GitHub！<br>
+        <a href="${esc(ghUrl)}" target="_blank" rel="noopener"
+          style="color:var(--accent);font-size:11px;word-break:break-all">${esc(ghUrl)}</a><br>
+        <span style="font-size:11px;color:var(--text3)">
+          ⚠️ 檔案在 GitHub Repo，需在 Obsidian 執行「Obsidian Git: Pull」後才會出現在本地 Vault
+        </span>`;
+      toast('📓 筆記已上傳至 GitHub Vault！');
     } else {
       const e=await r.json();
       obsMsg.textContent='❌ 失敗：'+(e.message||r.status);
@@ -1884,16 +2144,106 @@ async function saveToObsidian(){
 }
 
 // ════════════════════════════════════════════════════════════
+//  Theme
+// ════════════════════════════════════════════════════════════
+function applyTheme(){
+  const t=S.theme;
+  const el=document.documentElement;
+  if(t==='dark') el.dataset.theme='dark';
+  else if(t==='light') el.dataset.theme='light';
+  else delete el.dataset.theme;
+  const btn=document.getElementById('theme-btn');
+  if(btn) btn.textContent=t==='dark'?'🌙':t==='light'?'☀️':'🌗';
+}
+function cycleTheme(){
+  const order=['auto','light','dark'];
+  S.theme=order[(order.indexOf(S.theme)+1)%order.length];
+  localStorage.setItem(TK,S.theme);
+  applyTheme();
+  toast(S.theme==='auto'?'🌗 跟隨系統':S.theme==='light'?'☀️ 淺色模式':'🌙 深色模式');
+}
+
+// ════════════════════════════════════════════════════════════
+//  Auto Sync
+// ════════════════════════════════════════════════════════════
+let _syncTimer=null;
+function scheduleAutoSync(){
+  if(!S.autoSync) return;
+  if(!S.github.user||!S.github.repo||!S.github.token) return;
+  clearTimeout(_syncTimer);
+  _syncTimer=setTimeout(()=>githubSilentSave(),2500);
+}
+async function githubSilentSave(){
+  const dot=document.getElementById('sync-dot-hdr');
+  if(dot){dot.className='sync-dot syncing';}
+  const g=S.github;
+  try{
+    const content=btoa(unescape(encodeURIComponent(JSON.stringify(
+      {bookmarks:S.bookmarks,categories:S.categories,lastSync:new Date().toISOString()},null,2))));
+    const getR=await fetch(`https://api.github.com/repos/${g.user}/${g.repo}/contents/${g.path}`,
+      {headers:ghHeaders(g.token)});
+    const sha=getR.ok?(await getR.json()).sha||'':'';
+    const body={message:`Firefly auto-sync ${new Date().toISOString().slice(0,10)}`,content};
+    if(sha) body.sha=sha;
+    const r=await fetch(`https://api.github.com/repos/${g.user}/${g.repo}/contents/${g.path}`,
+      {method:'PUT',headers:ghHeaders(g.token),body:JSON.stringify(body)});
+    if(dot){dot.className=r.ok?'sync-dot synced':'sync-dot err';
+      setTimeout(()=>{if(dot)dot.className='sync-dot';},3000);}
+    if(r.ok) document.getElementById('sync-msg')&&(document.getElementById('sync-msg').textContent='✅ 自動同步 '+new Date().toLocaleTimeString('zh-TW'));
+  }catch(e){
+    if(dot){dot.className='sync-dot err';setTimeout(()=>{if(dot)dot.className='sync-dot';},3000);}
+  }
+}
+function saveAutoSyncSetting(){
+  S.autoSync=document.getElementById('as-toggle').checked;
+  localStorage.setItem(SYK,JSON.stringify(S.autoSync));
+  toast(S.autoSync?'☁️ 自動同步已開啟':'自動同步已關閉');
+}
+
+// ════════════════════════════════════════════════════════════
+//  iOS Shortcut
+// ════════════════════════════════════════════════════════════
+function copyShortcutInstructions(){
+  const base=document.getElementById('app-url').value.trim().replace(/\/$/,'');
+  if(!base){toast('請先填入 Firefly App 網址');return;}
+  S.appUrl=base;
+  localStorage.setItem(PK,JSON.stringify({appUrl:base}));
+  const url=`${base}?add=1&url=`;
+  navigator.clipboard.writeText(url)
+    .then(()=>{
+      document.getElementById('shortcut-msg').textContent='✅ 已複製！貼入 iOS「打開 URL」動作，網址後保留分享輸入變數';
+      toast('📋 捷徑 URL 已複製');
+    })
+    .catch(()=>{document.getElementById('shortcut-msg').textContent=url;});
+}
+function checkUrlParams(){
+  const p=new URLSearchParams(location.search);
+  if(p.get('add')==='1'&&p.get('url')){
+    const sharedUrl=p.get('url');
+    const sharedTitle=p.get('title')||'';
+    history.replaceState({},'',location.pathname);
+    openAdd();
+    setTimeout(()=>{
+      document.getElementById('f-url').value=sharedUrl;
+      document.getElementById('f-src').value=srcOf(sharedUrl);
+      if(sharedTitle) document.getElementById('f-title').value=sharedTitle;
+      if(!sharedTitle) fetchMeta();
+    },420);
+  }
+}
+
+// ════════════════════════════════════════════════════════════
 //  Boot
 // ════════════════════════════════════════════════════════════
 loadStore();
+applyTheme();
 renderAll();
 loadGithubForm();
 renderRevDot();
-// Show AI key status on page load
+checkUrlParams();
 setTimeout(()=>{
   const aiStatus=document.getElementById('ai-status');
-  if(aiStatus) aiStatus.textContent=S.geminiKey?'已設置 ✓':'';
+  if(aiStatus) aiStatus.textContent=S.groqKey?'Groq ✓':S.geminiKey?'Gemini ✓':'';
 },100);
 </script>
 </body>
