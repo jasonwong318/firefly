@@ -314,6 +314,73 @@ body{font-family:-apple-system,'PingFang TC','Noto Sans TC','Helvetica Neue',san
   font-family:inherit;text-align:center;transition:all .15s}
 .note-btn.primary{background:var(--accent);color:#000;border-color:var(--accent)}
 .note-btn.gh{background:rgba(139,92,246,.12);color:#A78BFA;border-color:rgba(139,92,246,.3)}
+
+/* ── Toast ── */
+#toast{position:fixed;bottom:calc(var(--safe-b) + var(--nav-h) + 14px);left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:#1E293B;color:#F1F5F9;padding:10px 18px;border-radius:24px;
+  font-size:14px;font-weight:500;white-space:nowrap;z-index:999;
+  opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;
+  display:flex;align-items:center;gap:10px;max-width:90vw}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+.toast-undo{background:none;border:none;color:var(--accent);font-size:14px;font-weight:700;
+  cursor:pointer;padding:0;font-family:inherit;flex-shrink:0}
+
+/* ── Spin ── */
+.spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;
+  border-top-color:transparent;border-radius:50%;animation:_spin .6s linear infinite;flex-shrink:0}
+@keyframes _spin{to{transform:rotate(360deg)}}
+
+/* ── Toggle switch ── */
+.toggle{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--surface2);
+  border-radius:12px;border:1px solid var(--border);transition:.2s}
+.toggle-slider:before{content:'';position:absolute;width:18px;height:18px;
+  left:2px;bottom:2px;background:var(--text3);border-radius:50%;transition:.2s}
+.toggle input:checked+.toggle-slider{background:var(--accent);border-color:var(--accent)}
+.toggle input:checked+.toggle-slider:before{transform:translateX(20px);background:#000}
+
+/* ── Sync dot in header ── */
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);
+  flex-shrink:0;transition:background .3s;display:none}
+.sync-dot.syncing{display:block;background:var(--accent);animation:_pulse .8s ease infinite alternate}
+.sync-dot.synced{display:block;background:var(--success)}
+.sync-dot.err{display:block;background:var(--danger)}
+@keyframes _pulse{to{opacity:.25}}
+
+/* ── Theme button ── */
+.hdr-icon-btn{flex-shrink:0;width:36px;height:36px;border-radius:10px;
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text2);font-size:18px;display:flex;align-items:center;
+  justify-content:center;cursor:pointer;transition:all .15s}
+.hdr-icon-btn:active{border-color:var(--accent);color:var(--accent)}
+
+/* ── Light mode ── */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg:#F8FAFC;--surface:#FFFFFF;--surface2:#F1F5F9;--border:#E2E8F0;
+    --text:#0F172A;--text2:#475569;--text3:#94A3B8;
+    --accent:#D97706;--accent-dim:rgba(217,119,6,.12);
+    --danger:#DC2626;--success:#059669;
+  }
+  :root:not([data-theme="dark"]) #header{background:rgba(248,250,252,.96)}
+  :root:not([data-theme="dark"]) #bottom-nav{background:rgba(255,255,255,.98)}
+  :root:not([data-theme="dark"]) .card-menu-btn{background:rgba(248,250,252,.82);border-color:rgba(0,0,0,.1)}
+  :root:not([data-theme="dark"]) #toast{background:var(--text);color:var(--bg)}
+  :root:not([data-theme="dark"]) .nav-plus{box-shadow:0 4px 20px rgba(217,119,6,.4)}
+}
+html[data-theme="light"] {
+  --bg:#F8FAFC;--surface:#FFFFFF;--surface2:#F1F5F9;--border:#E2E8F0;
+  --text:#0F172A;--text2:#475569;--text3:#94A3B8;
+  --accent:#D97706;--accent-dim:rgba(217,119,6,.12);
+  --danger:#DC2626;--success:#059669;
+}
+html[data-theme="light"] #header{background:rgba(248,250,252,.96)}
+html[data-theme="light"] #bottom-nav{background:rgba(255,255,255,.98)}
+html[data-theme="light"] .card-menu-btn{background:rgba(248,250,252,.82);border-color:rgba(0,0,0,.1)}
+html[data-theme="light"] #toast{background:var(--text);color:var(--bg)}
+html[data-theme="light"] .nav-plus{box-shadow:0 4px 20px rgba(217,119,6,.4)}
 </style>
 </head>
 <body>
@@ -330,10 +397,12 @@ body{font-family:-apple-system,'PingFang TC','Noto Sans TC','Helvetica Neue',san
       <input id="srch" type="search" placeholder="搜索標題、描述、標籤…" oninput="onSearch(this.value)"
              autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     </div>
+    <button id="theme-btn" class="hdr-icon-btn" onclick="cycleTheme()" title="切換模式">🌗</button>
     <button onclick="openNotes()" style="flex-shrink:0;width:36px;height:36px;border-radius:10px;
       background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.3);
       color:#A78BFA;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer"
       title="AI 截圖筆記">📷</button>
+    <div class="sync-dot" id="sync-dot-hdr" title="自動同步狀態"></div>
     <div class="cnt-badge" id="cnt-badge">0</div>
   </div>
 </div>
@@ -377,7 +446,11 @@ body{font-family:-apple-system,'PingFang TC','Noto Sans TC','Helvetica Neue',san
       <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.6">
         申請：GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic) → 勾選 <strong>repo</strong>
       </div>
-      <div class="sync-row">
+      <div class="ss-row" style="border-top:1px solid var(--border);margin:0 -14px;padding:12px 14px">
+        <div class="ss-lbl"><strong>自動同步</strong><span>每次新增/編輯後自動上傳</span></div>
+        <label class="toggle"><input type="checkbox" id="as-toggle" onchange="saveAutoSyncSetting()"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="sync-row" style="margin-top:12px">
         <button class="ss-act prim" onclick="githubSave()">☁️ 上傳</button>
         <button class="ss-act sec" onclick="githubLoad()">⬇️ 載入</button>
       </div>
@@ -421,6 +494,23 @@ body{font-family:-apple-system,'PingFang TC','Noto Sans TC','Helvetica Neue',san
       <div class="ss-row">
         <div class="ss-lbl"><strong>我的 Bot Token</strong><span>設置後顯示已連接狀態</span></div>
         <div id="tg-status" style="font-size:12px;color:var(--text3)">未設置</div>
+      </div>
+    </div></div>
+
+    <div class="ss-title">📱 iOS 捷徑（分享書籤）</div>
+    <div class="ss"><div class="ss-card ss-pad">
+      <div class="fg"><label class="fl">Firefly App 網址</label>
+        <input type="url" class="fi" id="app-url" placeholder="https://jasonwong318.github.io/firefly/">
+      </div>
+      <button class="save-btn" style="margin-top:0;padding:11px" onclick="copyShortcutInstructions()">📋 複製捷徑 URL</button>
+      <div id="shortcut-msg" class="sync-msg"></div>
+      <div style="font-size:12px;color:var(--text2);margin-top:12px;line-height:1.8">
+        <strong style="color:var(--text)">設置步驟（iOS 捷徑 App）</strong><br>
+        1. 新增捷徑 → 搜尋「URL」動作，選「取得 URL」（接受分享單）<br>
+        2. 加「打開 URL」動作，URL 填入上方複製的連結<br>
+        3. 捷徑設定 → 加入「分享單」<br>
+        4. 在 YouTube / Threads / 小紅書等 App 分享頁面 → 選此捷徑<br>
+        5. Firefly 自動開啟並填入連結，點「自動獲取」即完成
       </div>
     </div></div>
 
@@ -665,6 +755,7 @@ body{font-family:-apple-system,'PingFang TC','Noto Sans TC','Helvetica Neue',san
 //  Constants
 // ════════════════════════════════════════════════════════════
 const SK = 'firefly_v1', HK = 'firefly_github', OK = 'firefly_obsidian', AK = 'firefly_ai';
+const TK = 'firefly_theme', SYK = 'firefly_autosync', RVK = 'firefly_review_today', PK = 'firefly_prefs';
 
 const SRC = {
   youtube:     { label:'YouTube',   icon:'▶️' },
@@ -695,7 +786,10 @@ let S = {
   github: { user:'', repo:'', path:'firefly.json', token:'' },
   obsidian: { repo:'', folder:'raw', token:'' },
   geminiKey: '',
-  noteImages: []   // uploaded images for AI notes
+  noteImages: [],
+  theme: 'auto',
+  autoSync: false,
+  appUrl: ''
 };
 
 // ════════════════════════════════════════════════════════════
@@ -703,6 +797,7 @@ let S = {
 // ════════════════════════════════════════════════════════════
 function persist() {
   localStorage.setItem(SK, JSON.stringify({ bookmarks: S.bookmarks, categories: S.categories }));
+  scheduleAutoSync();
 }
 function loadStore() {
   try {
@@ -720,6 +815,18 @@ function loadStore() {
   try {
     const ak = localStorage.getItem(AK);
     if (ak) S.geminiKey = ak;
+  } catch(e){}
+  try {
+    const th = localStorage.getItem(TK);
+    if (th) S.theme = th;
+  } catch(e){}
+  try {
+    const sy = JSON.parse(localStorage.getItem(SYK) || 'null');
+    if (sy != null) S.autoSync = !!sy;
+  } catch(e){}
+  try {
+    const pr = JSON.parse(localStorage.getItem(PK) || 'null');
+    if (pr && pr.appUrl) S.appUrl = pr.appUrl;
   } catch(e){}
 }
 
@@ -1167,6 +1274,11 @@ function saveBm() {
   if(tiVal) addTag(tiVal);
   if(!url){document.getElementById('f-url').focus();toast('⚠️ 請填寫 URL');return;}
   if(!title){document.getElementById('f-title').focus();toast('⚠️ 請填寫標題');return;}
+  // Duplicate URL check (only for new bookmarks)
+  if(!eid){
+    const dup=S.bookmarks.find(b=>b.url===url);
+    if(dup&&!confirm(`此連結已存在：\n「${dup.title}」\n\n是否仍要保存？`)) return;
+  }
   const data={
     url,title,
     description:document.getElementById('f-desc').value.trim(),
@@ -1179,7 +1291,7 @@ function saveBm() {
   const eid=document.getElementById('f-id').value;
   if(eid){
     const i=S.bookmarks.findIndex(b=>b.id===eid);
-    if(i>=0) S.bookmarks[i]={...S.bookmarks[i],...data};
+    if(i>=0) S.bookmarks[i]={...S.bookmarks[i],...data,updatedAt:new Date().toISOString()};
     toast('✏️ 已更新書籤');
   } else {
     data.id=uid(); data.createdAt=new Date().toISOString();
@@ -1189,9 +1301,23 @@ function saveBm() {
   persist(); closeAdd(); renderAll();
 }
 
+let _deletedBm=null;
 function delBm(id) {
+  _deletedBm=S.bookmarks.find(x=>x.id===id)||null;
   S.bookmarks=S.bookmarks.filter(b=>b.id!==id);
-  persist(); closeDet(); renderAll(); toast('🗑️ 已刪除');
+  persist(); closeDet(); renderAll();
+  // Toast with undo
+  const el=document.getElementById('toast');
+  const label=_deletedBm?((_deletedBm.title||'書籤').slice(0,20)):'書籤';
+  el.innerHTML=`🗑️ 已刪除「${esc(label)}」 <button class="toast-undo" onclick="undoDel()">↩️ 復原</button>`;
+  el.classList.add('show');
+  clearTimeout(_toastT);
+  _toastT=setTimeout(()=>{el.classList.remove('show');_deletedBm=null;},5000);
+}
+function undoDel(){
+  if(!_deletedBm) return;
+  S.bookmarks.unshift(_deletedBm); _deletedBm=null;
+  persist(); renderAll(); toast('↩️ 已復原');
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1337,6 +1463,7 @@ function srRate(id, quality) {
   const next=new Date();
   next.setDate(next.getDate()+sr.interval);
   sr.nextReview=next.toISOString().slice(0,10);
+  markReviewed(id);
   persist();
   S.revIdx++;
   renderReview();
@@ -1346,9 +1473,21 @@ function srRate(id, quality) {
   toast(msg,2000);
 }
 
+function getTodayReviewed(){
+  try{
+    const r=JSON.parse(localStorage.getItem(RVK)||'null');
+    if(r&&r.date===todayStr()) return new Set(r.ids||[]);
+  }catch(e){}
+  return new Set();
+}
+function markReviewed(id){
+  const s=getTodayReviewed(); s.add(id);
+  localStorage.setItem(RVK,JSON.stringify({date:todayStr(),ids:[...s]}));
+}
 function dueItems() {
   const today=todayStr();
-  return S.bookmarks.filter(b=>b.sr&&b.sr.nextReview&&b.sr.nextReview<=today);
+  const reviewed=getTodayReviewed();
+  return S.bookmarks.filter(b=>b.sr&&b.sr.nextReview&&b.sr.nextReview<=today&&!reviewed.has(b.id));
 }
 
 function renderRevDot() {
@@ -1442,6 +1581,10 @@ function loadGithubForm() {
   document.getElementById('ob-folder').value=S.obsidian.folder;
   const tgs=document.getElementById('tg-status');
   if(tgs) tgs.textContent=S.github.token?'GitHub 已設置':'未設置';
+  const ast=document.getElementById('as-toggle');
+  if(ast) ast.checked=S.autoSync;
+  const apu=document.getElementById('app-url');
+  if(apu&&S.appUrl) apu.value=S.appUrl;
   const gk=document.getElementById('gem-key');
   if(gk) gk.value=S.geminiKey?'•'.repeat(20):'';
   const gmsg=document.getElementById('gem-msg');
@@ -1877,13 +2020,103 @@ async function saveToObsidian(){
 }
 
 // ════════════════════════════════════════════════════════════
+//  Theme
+// ════════════════════════════════════════════════════════════
+function applyTheme(){
+  const t=S.theme;
+  const el=document.documentElement;
+  if(t==='dark') el.dataset.theme='dark';
+  else if(t==='light') el.dataset.theme='light';
+  else delete el.dataset.theme;
+  const btn=document.getElementById('theme-btn');
+  if(btn) btn.textContent=t==='dark'?'🌙':t==='light'?'☀️':'🌗';
+}
+function cycleTheme(){
+  const order=['auto','light','dark'];
+  S.theme=order[(order.indexOf(S.theme)+1)%order.length];
+  localStorage.setItem(TK,S.theme);
+  applyTheme();
+  toast(S.theme==='auto'?'🌗 跟隨系統':S.theme==='light'?'☀️ 淺色模式':'🌙 深色模式');
+}
+
+// ════════════════════════════════════════════════════════════
+//  Auto Sync
+// ════════════════════════════════════════════════════════════
+let _syncTimer=null;
+function scheduleAutoSync(){
+  if(!S.autoSync) return;
+  if(!S.github.user||!S.github.repo||!S.github.token) return;
+  clearTimeout(_syncTimer);
+  _syncTimer=setTimeout(()=>githubSilentSave(),2500);
+}
+async function githubSilentSave(){
+  const dot=document.getElementById('sync-dot-hdr');
+  if(dot){dot.className='sync-dot syncing';}
+  const g=S.github;
+  try{
+    const content=btoa(unescape(encodeURIComponent(JSON.stringify(
+      {bookmarks:S.bookmarks,categories:S.categories,lastSync:new Date().toISOString()},null,2))));
+    const getR=await fetch(`https://api.github.com/repos/${g.user}/${g.repo}/contents/${g.path}`,
+      {headers:ghHeaders(g.token)});
+    const sha=getR.ok?(await getR.json()).sha||'':'';
+    const body={message:`Firefly auto-sync ${new Date().toISOString().slice(0,10)}`,content};
+    if(sha) body.sha=sha;
+    const r=await fetch(`https://api.github.com/repos/${g.user}/${g.repo}/contents/${g.path}`,
+      {method:'PUT',headers:ghHeaders(g.token),body:JSON.stringify(body)});
+    if(dot){dot.className=r.ok?'sync-dot synced':'sync-dot err';
+      setTimeout(()=>{if(dot)dot.className='sync-dot';},3000);}
+    if(r.ok) document.getElementById('sync-msg')&&(document.getElementById('sync-msg').textContent='✅ 自動同步 '+new Date().toLocaleTimeString('zh-TW'));
+  }catch(e){
+    if(dot){dot.className='sync-dot err';setTimeout(()=>{if(dot)dot.className='sync-dot';},3000);}
+  }
+}
+function saveAutoSyncSetting(){
+  S.autoSync=document.getElementById('as-toggle').checked;
+  localStorage.setItem(SYK,JSON.stringify(S.autoSync));
+  toast(S.autoSync?'☁️ 自動同步已開啟':'自動同步已關閉');
+}
+
+// ════════════════════════════════════════════════════════════
+//  iOS Shortcut
+// ════════════════════════════════════════════════════════════
+function copyShortcutInstructions(){
+  const base=document.getElementById('app-url').value.trim().replace(/\/$/,'');
+  if(!base){toast('請先填入 Firefly App 網址');return;}
+  S.appUrl=base;
+  localStorage.setItem(PK,JSON.stringify({appUrl:base}));
+  const url=`${base}?add=1&url=`;
+  navigator.clipboard.writeText(url)
+    .then(()=>{
+      document.getElementById('shortcut-msg').textContent='✅ 已複製！貼入 iOS「打開 URL」動作，網址後保留分享輸入變數';
+      toast('📋 捷徑 URL 已複製');
+    })
+    .catch(()=>{document.getElementById('shortcut-msg').textContent=url;});
+}
+function checkUrlParams(){
+  const p=new URLSearchParams(location.search);
+  if(p.get('add')==='1'&&p.get('url')){
+    const sharedUrl=p.get('url');
+    const sharedTitle=p.get('title')||'';
+    history.replaceState({},'',location.pathname);
+    openAdd();
+    setTimeout(()=>{
+      document.getElementById('f-url').value=sharedUrl;
+      document.getElementById('f-src').value=srcOf(sharedUrl);
+      if(sharedTitle) document.getElementById('f-title').value=sharedTitle;
+      if(!sharedTitle) fetchMeta();
+    },420);
+  }
+}
+
+// ════════════════════════════════════════════════════════════
 //  Boot
 // ════════════════════════════════════════════════════════════
 loadStore();
+applyTheme();
 renderAll();
 loadGithubForm();
 renderRevDot();
-// Show AI key status on page load
+checkUrlParams();
 setTimeout(()=>{
   const aiStatus=document.getElementById('ai-status');
   if(aiStatus) aiStatus.textContent=S.geminiKey?'已設置 ✓':'';
