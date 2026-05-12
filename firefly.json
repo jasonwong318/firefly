@@ -6,11 +6,18 @@
       "title": "一口氣讀懂《 #快思慢想 》掌握大腦的 2 個系統，90% 的人輸在「快思考」？",
       "description": "暢銷書精讀班(廣東話讀書會) 的 YouTube 影片",
       "thumbnail": "https://i.ytimg.com/vi/J-ermSW16BE/hqdefault.jpg",
-      "source": "other",
-      "tags": [],
-      "category": "",
+      "source": "youtube",
+      "tags": [
+        "快思慢想",
+        "讀書會",
+        "心理學",
+        "大腦",
+        "思考"
+      ],
+      "category": "其他",
       "createdAt": "2026-05-12T17:05:20.076Z",
-      "type": "video"
+      "type": "video",
+      "updatedAt": "2026-05-12T22:39:23.392Z"
     },
     {
       "id": "mp2vsmatnpr",
@@ -343,5 +350,5 @@
     "CIA & CISA",
     "財經 & 股票投資"
   ],
-  "lastSync": "2026-05-12T22:39:22.433Z"
+  "lastSync": "2026-05-12T22:39:25.894Z"
 }
