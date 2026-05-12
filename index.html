@@ -512,6 +512,14 @@ html[data-theme="light"] .nav-plus{box-shadow:0 4px 20px rgba(217,119,6,.4)}
         <div class="ss-lbl"><strong>我的 Bot Token</strong><span>設置後顯示已連接狀態</span></div>
         <div id="tg-status" style="font-size:12px;color:var(--text3)">未設置</div>
       </div>
+      <div class="ss-row" style="flex-direction:column;align-items:stretch;gap:8px">
+        <div class="ss-lbl"><strong>Worker URL</strong><span>填入後封面圖取得率大幅提升（小紅書/Threads 等）</span></div>
+        <div style="display:flex;gap:8px">
+          <input type="url" class="fi" id="worker-url-inp" placeholder="https://your-worker.xxx.workers.dev" style="flex:1;font-size:13px">
+          <button class="ss-act" onclick="saveWorkerUrl()">儲存</button>
+        </div>
+        <div id="worker-url-msg" class="sync-msg"></div>
+      </div>
     </div></div>
 
     <div class="ss-title">📱 iOS 捷徑（分享書籤）</div>
@@ -773,7 +781,7 @@ html[data-theme="light"] .nav-plus{box-shadow:0 4px 20px rgba(217,119,6,.4)}
 // ════════════════════════════════════════════════════════════
 const SK = 'firefly_v1', HK = 'firefly_github', OK = 'firefly_obsidian', AK = 'firefly_ai';
 const TK = 'firefly_theme', SYK = 'firefly_autosync', RVK = 'firefly_review_today', PK = 'firefly_prefs';
-const GK = 'firefly_groq';
+const GK = 'firefly_groq', WK = 'firefly_worker';
 
 const SRC = {
   youtube:     { label:'YouTube',   icon:'▶️' },
@@ -805,6 +813,7 @@ let S = {
   obsidian: { repo:'', folder:'raw', token:'' },
   geminiKey: '',
   groqKey: '',
+  workerUrl: '',
   noteImages: [],
   theme: 'auto',
   autoSync: false,
@@ -838,6 +847,10 @@ function loadStore() {
   try {
     const gk = localStorage.getItem(GK);
     if (gk) S.groqKey = gk;
+  } catch(e){}
+  try {
+    const wk = localStorage.getItem(WK);
+    if (wk) S.workerUrl = wk;
   } catch(e){}
   try {
     const th = localStorage.getItem(TK);
@@ -1183,6 +1196,22 @@ async function fetchMeta() {
   let title='', desc='', img='';
   if(!ytId) {
     let fetched=false;
+
+    // 0. Cloudflare Worker /meta — 最可靠，伺服器端抓取無 CORS 限制
+    if(S.workerUrl&&!fetched){
+      try{
+        const wRes=await fetch(`${S.workerUrl}/meta?url=${encodeURIComponent(url)}`,
+          {signal:AbortSignal.timeout(8000)});
+        if(wRes.ok){
+          const wd=await wRes.json();
+          if(wd.title){
+            title=wd.title; desc=wd.description||''; img=wd.image||'';
+            if(wd.type&&TICO[wd.type]){S.curType=wd.type;document.querySelectorAll('.type-btn').forEach(b=>b.classList.toggle('on',b.dataset.t===wd.type));}
+            fetched=true;
+          }
+        }
+      }catch(e){}
+    }
 
     // 1. microlink.io — 專為社群媒體設計，支援小紅書/Threads/Facebook 等
     try{
@@ -1587,6 +1616,14 @@ function renderReview() {
 // ════════════════════════════════════════════════════════════
 //  GitHub Sync (functions above)
 // ════════════════════════════════════════════════════════════
+function saveWorkerUrl() {
+  const v=document.getElementById('worker-url-inp').value.trim().replace(/\/$/,'');
+  S.workerUrl=v;
+  if(v) localStorage.setItem(WK,v); else localStorage.removeItem(WK);
+  const msg=document.getElementById('worker-url-msg');
+  if(msg) msg.textContent=v?'✅ 已儲存！fetchMeta 將優先使用 Worker':'已清除 Worker URL';
+  toast(v?'🔧 Worker URL 已儲存':'已清除 Worker URL');
+}
 function saveGroqKey() {
   const v=document.getElementById('groq-key').value.trim();
   if(v&&!v.match(/^•+$/)){
@@ -1633,6 +1670,10 @@ function loadGithubForm() {
   if(ast) ast.checked=S.autoSync;
   const apu=document.getElementById('app-url');
   if(apu&&S.appUrl) apu.value=S.appUrl;
+  const wui=document.getElementById('worker-url-inp');
+  if(wui) wui.value=S.workerUrl||'';
+  const wum=document.getElementById('worker-url-msg');
+  if(wum) wum.textContent=S.workerUrl?`✅ Worker 已設置：${S.workerUrl}`:'未設置（設置後封面圖取得率大幅提升）';
   const gk=document.getElementById('gem-key');
   if(gk) gk.value=S.geminiKey?'•'.repeat(20):'';
   const gmsg=document.getElementById('gem-msg');
@@ -1768,11 +1809,27 @@ function updateStats() {
 // ════════════════════════════════════════════════════════════
 //  Telegram Guide
 // ════════════════════════════════════════════════════════════
-const WORKER_CODE=`// Cloudflare Worker — Firefly Telegram Bot
+const WORKER_CODE=`// Cloudflare Worker — Firefly Telegram Bot + Meta API v2
 // 環境變數：BOT_TOKEN, GITHUB_USER, GITHUB_REPO, GITHUB_PATH, GITHUB_TOKEN
 
 export default {
   async fetch(request, env) {
+    const reqUrl = new URL(request.url);
+
+    // CORS preflight
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders() });
+    }
+
+    // GET /meta — Firefly App 呼叫，取得任意 URL 的 metadata（標題/描述/封面圖）
+    if (request.method === 'GET' && reqUrl.pathname === '/meta') {
+      const target = reqUrl.searchParams.get('url');
+      if (!target) return jsonRes({ error: 'missing url' }, 400);
+      const meta = await fetchUrlMeta(target);
+      return jsonRes(meta);
+    }
+
+    // POST / — Telegram Bot webhook
     if (request.method !== 'POST') return new Response('OK');
     const update = await request.json();
     const msg = update.message?.text || '';
@@ -1785,94 +1842,104 @@ export default {
       return new Response('OK');
     }
     const url = urlMatch[0];
-    const src = detectSrc(url);
-
-    // ── YouTube: extract thumbnail directly (100% reliable)
-    let title = '', desc = '', thumb = '';
-    const ytMatch = url.match(/(?:v=|youtu\\.be\\/|shorts\\/)([A-Za-z0-9_-]{11})/);
-    if (ytMatch) {
-      thumb = \`https://img.youtube.com/vi/\${ytMatch[1]}/hqdefault.jpg\`;
-    }
-
-    // ── Direct server-side fetch (Worker = Cloudflare server, no browser restrictions)
-    // This works for XiaoHongShu, Instagram, general sites — same as Telegram's preview
-    try {
-      const r = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
-          'Accept': 'text/html,application/xhtml+xml',
-          'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
-        },
-        redirect: 'follow',
-        cf: { cacheTtl: 300 }
-      });
-      const h = await r.text();
-      const og = p => {
-        const m = h.match(new RegExp(\`<meta[^>]+(?:property|name)=["']\${p}["'][^>]*content=["']([^"'<>]{1,400})["']\`, 'i'))
-               || h.match(new RegExp(\`<meta[^>]+content=["']([^"'<>]{1,400})["'][^>]*(?:property|name)=["']\${p}["']\`, 'i'));
-        return m ? m[1].trim() : '';
-      };
-      const t = og('og:title') || og('twitter:title') || (h.match(/<title[^>]*>([^<]{1,200})<\\/title>/i)||[])[1] || '';
-      const de = og('og:description') || og('twitter:description') || og('description') || '';
-      const im = og('og:image') || og('twitter:image') || '';
-      if (t) title = t.slice(0, 200);
-      if (de) desc = de.slice(0, 400);
-      if (im && !thumb) thumb = im;
-    } catch(e) {
-      // ignore fetch error, use URL as title fallback
-    }
-    if (!title) title = url;
+    const meta = await fetchUrlMeta(url);
 
     const bm = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2,5),
-      url, title, description: desc, thumbnail: thumb,
-      source: src, tags: [], category: '',
-      createdAt: new Date().toISOString(),
-      type: ytMatch ? 'video' : 'article'
+      url, title: meta.title || url,
+      description: meta.description, thumbnail: meta.image,
+      source: meta.source, tags: [], category: '',
+      createdAt: new Date().toISOString(), type: meta.type
     };
 
-    // Read → merge → write GitHub
     const ghBase = \`https://api.github.com/repos/\${env.GITHUB_USER}/\${env.GITHUB_REPO}/contents/\${env.GITHUB_PATH}\`;
-    const ghHeaders = {
+    const ghHdrs = {
       'Authorization': \`token \${env.GITHUB_TOKEN}\`,
       'Accept': 'application/vnd.github.v3+json',
       'Content-Type': 'application/json'
     };
-    const getR = await fetch(ghBase, { headers: ghHeaders });
+    const getR = await fetch(ghBase, { headers: ghHdrs });
     let sha = '', existing = { bookmarks: [], categories: [] };
     if (getR.ok) {
       const gd = await getR.json();
       sha = gd.sha || '';
-      try {
-        existing = JSON.parse(
-          decodeURIComponent(escape(atob(gd.content.replace(/\\n/g, ''))))
-        );
-      } catch(e) {}
+      try { existing = JSON.parse(decodeURIComponent(escape(atob(gd.content.replace(/\\n/g, ''))))); } catch(e) {}
     }
-    // Prepend new bookmark (avoid duplicates by URL)
     const alreadyExists = (existing.bookmarks||[]).some(b => b.url === url);
-    if (!alreadyExists) {
-      existing.bookmarks = [bm, ...(existing.bookmarks || [])];
-    }
+    if (!alreadyExists) existing.bookmarks = [bm, ...(existing.bookmarks||[])];
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(existing))));
     const body = { message: 'tg: ' + url, content };
     if (sha) body.sha = sha;
-    await fetch(ghBase, {
-      method: 'PUT',
-      headers: ghHeaders,
-      body: JSON.stringify(body)
-    });
+    await fetch(ghBase, { method: 'PUT', headers: ghHdrs, body: JSON.stringify(body) });
 
-    const replyIcon = { youtube:'▶️', xiaohongshu:'📕', instagram:'📷', facebook:'👥', douyin:'🎵' }[src] || '🔗';
+    const icon = { youtube:'▶️', xiaohongshu:'📕', instagram:'📷', facebook:'👥', douyin:'🎵' }[meta.source] || '🔗';
     await tgSend(env.BOT_TOKEN, chatId,
       alreadyExists
-        ? \`⚠️ 此連結已存在於書籤中\\n\\n📌 \${title}\`
-        : \`✅ 已保存！\\n\\n\${replyIcon} \${title}\\n\\n在 Firefly App 點「⬇️ 載入」即可看到\`
+        ? \`⚠️ 此連結已存在\\n\\n📌 \${meta.title}\`
+        : \`✅ 已保存！\\n\\n\${icon} \${meta.title}\\n\\n在 App 點「⬇️ 載入」同步\`
     );
     return new Response('OK');
   }
 };
 
+// ── 共用 metadata 抓取（/meta 端點 + Telegram bot 共用）
+async function fetchUrlMeta(url) {
+  let title = '', desc = '', thumb = '', type = 'article';
+  const src = detectSrc(url);
+
+  const ytMatch = url.match(/(?:v=|youtu\\.be\\/|shorts\\/)([A-Za-z0-9_-]{11})/);
+  if (ytMatch) {
+    thumb = \`https://img.youtube.com/vi/\${ytMatch[1]}/hqdefault.jpg\`;
+    type = 'video';
+    try {
+      const oe = await fetch(\`https://www.youtube.com/oembed?url=\${encodeURIComponent(url)}&format=json\`);
+      if (oe.ok) {
+        const od = await oe.json();
+        if (od.title) title = od.title;
+        if (od.thumbnail_url) thumb = od.thumbnail_url;
+        if (od.author_name) desc = \`\${od.author_name} 的 YouTube 影片\`;
+      }
+    } catch(e) {}
+    return { title, description: desc, image: thumb, type, source: src };
+  }
+
+  try {
+    const r = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
+      },
+      redirect: 'follow',
+      cf: { cacheTtl: 300 }
+    });
+    const h = await r.text();
+    const og = p => {
+      const m = h.match(new RegExp(\`<meta[^>]+(?:property|name)=["']\${p}["'][^>]*content=["']([^"'<>]{1,500})["']\`, 'i'))
+               || h.match(new RegExp(\`<meta[^>]+content=["']([^"'<>]{1,500})["'][^>]*(?:property|name)=["']\${p}["']\`, 'i'));
+      return m ? m[1].trim() : '';
+    };
+    title = og('og:title') || og('twitter:title') || (h.match(/<title[^>]*>([^<]{1,200})<\\/title>/i)||[])[1] || '';
+    desc  = og('og:description') || og('twitter:description') || og('description') || '';
+    thumb = og('og:image') || og('twitter:image') || '';
+    if (og('og:type').includes('video')) type = 'video';
+  } catch(e) {}
+
+  return { title: (title||url).slice(0,200), description: desc.slice(0,500), image: thumb, type, source: src };
+}
+
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+}
+function jsonRes(data, status=200) {
+  return new Response(JSON.stringify(data), {
+    status, headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+  });
+}
 async function tgSend(token, chatId, text) {
   await fetch(\`https://api.telegram.org/bot\${token}/sendMessage\`, {
     method: 'POST',
@@ -1880,7 +1947,6 @@ async function tgSend(token, chatId, text) {
     body: JSON.stringify({ chat_id: chatId, text })
   });
 }
-
 function detectSrc(url) {
   const u = url.toLowerCase();
   const m = [
