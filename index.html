@@ -469,19 +469,36 @@ html[data-theme="light"] .nav-plus{box-shadow:0 4px 20px rgba(217,119,6,.4)}
       <div id="ob-msg" class="sync-msg"></div>
     </div></div>
 
-    <div class="ss-title">🤖 AI 自動標籤（Gemini）</div>
+    <div class="ss-title">🤖 AI 設定</div>
     <div class="ss"><div class="ss-card ss-pad">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.7;background:var(--accent-dim);border-radius:var(--r-sm);padding:10px">
+        🚀 <strong>Groq</strong>（書籤自動標籤）速度更快、更聰明<br>
+        🔬 <strong>Gemini</strong>（截圖筆記）支援圖片/PDF，必須填寫<br>
+        兩者皆填時，標籤用 Groq，截圖筆記用 Gemini
+      </div>
       <div class="fg">
-        <label class="fl">Gemini API Key
+        <label class="fl">🚀 Groq API Key（書籤標籤）
+          <span style="font-size:10px;font-weight:400;color:var(--success);margin-left:6px;text-transform:none">免費</span>
+        </label>
+        <input type="password" class="fi" id="groq-key" placeholder="gsk_…">
+        <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.6">
+          免費申請：<span style="color:var(--accent)">console.groq.com</span> → API Keys → Google 帳號登入即可<br>
+          模型：llama-3.3-70b · 每天 14,400 次
+        </div>
+      </div>
+      <button class="save-btn" style="margin-top:0;padding:11px;margin-bottom:14px" onclick="saveGroqKey()">💾 儲存 Groq Key</button>
+      <div id="groq-msg" class="sync-msg" style="margin-bottom:12px"></div>
+      <div class="fg">
+        <label class="fl">🔬 Gemini API Key（截圖筆記）
           <span style="font-size:10px;font-weight:400;color:var(--success);margin-left:6px;text-transform:none">免費</span>
         </label>
         <input type="password" class="fi" id="gem-key" placeholder="AIzaSy…">
         <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.6">
           免費申請：<span style="color:var(--accent)">aistudio.google.com</span> → Get API Key → 無需信用卡<br>
-          每分鐘 15 次，個人使用綽綽有餘
+          每分鐘 15 次 · 支援圖片/PDF 分析
         </div>
       </div>
-      <button class="save-btn" style="margin-top:0;padding:11px" onclick="saveGeminiKey()">💾 儲存 API Key</button>
+      <button class="save-btn" style="margin-top:0;padding:11px" onclick="saveGeminiKey()">💾 儲存 Gemini Key</button>
       <div id="gem-msg" class="sync-msg"></div>
     </div></div>
 
@@ -756,6 +773,7 @@ html[data-theme="light"] .nav-plus{box-shadow:0 4px 20px rgba(217,119,6,.4)}
 // ════════════════════════════════════════════════════════════
 const SK = 'firefly_v1', HK = 'firefly_github', OK = 'firefly_obsidian', AK = 'firefly_ai';
 const TK = 'firefly_theme', SYK = 'firefly_autosync', RVK = 'firefly_review_today', PK = 'firefly_prefs';
+const GK = 'firefly_groq';
 
 const SRC = {
   youtube:     { label:'YouTube',   icon:'▶️' },
@@ -786,6 +804,7 @@ let S = {
   github: { user:'', repo:'', path:'firefly.json', token:'' },
   obsidian: { repo:'', folder:'raw', token:'' },
   geminiKey: '',
+  groqKey: '',
   noteImages: [],
   theme: 'auto',
   autoSync: false,
@@ -815,6 +834,10 @@ function loadStore() {
   try {
     const ak = localStorage.getItem(AK);
     if (ak) S.geminiKey = ak;
+  } catch(e){}
+  try {
+    const gk = localStorage.getItem(GK);
+    if (gk) S.groqKey = gk;
   } catch(e){}
   try {
     const th = localStorage.getItem(TK);
@@ -1058,7 +1081,7 @@ function openAdd() {
   document.getElementById('add-ov').classList.add('open');
   // Show AI key status
   const aiStatus=document.getElementById('ai-status');
-  if(aiStatus) aiStatus.textContent=S.geminiKey?'已設置 ✓':'未設置';
+  if(aiStatus) aiStatus.textContent=S.groqKey?'Groq ✓':S.geminiKey?'Gemini ✓':'未設置';
   setTimeout(()=>document.getElementById('f-url').focus(),380);
 }
 
@@ -1159,31 +1182,53 @@ async function fetchMeta() {
   // ── General og: metadata via proxy (非 YouTube 才用)
   let title='', desc='', img='';
   if(!ytId) {
-    const proxies=[
-      `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-    ];
     let fetched=false;
-    for(const proxy of proxies){
-      try{
-        const r=await fetch(proxy,{signal:AbortSignal.timeout(6000)});
-        if(!r.ok) continue;
-        const raw=await r.text();
-        const h=proxy.includes('allorigins')?(JSON.parse(raw).contents||''):raw;
-        if(!h||h.length<100) continue;
-        const og=p=>{
-          const m=h.match(new RegExp(`<meta[^>]+(?:property|name)=["']${p}["'][^>]*content=["']([^"'<>]{1,300})["']`,'i'))
-                 ||h.match(new RegExp(`<meta[^>]+content=["']([^"'<>]{1,300})["'][^>]*(?:property|name)=["']${p}["']`,'i'));
-          return m?dehtml(m[1].trim()):'';
-        };
-        const t=og('og:title')||og('twitter:title')||(h.match(/<title[^>]*>([^<]{1,200})<\/title>/i)||[])[1]||'';
-        const de=og('og:description')||og('twitter:description')||og('description')||'';
-        const im=og('og:image')||og('twitter:image')||'';
-        if(t){title=t.trim().slice(0,200);desc=de.trim().slice(0,500);if(!img)img=im;fetched=true;break;}
-        if(de) desc=de.trim().slice(0,500);
-        if(im) img=im;
-      } catch(e){continue;}
+
+    // 1. microlink.io — 專為社群媒體設計，支援小紅書/Threads/Facebook 等
+    try{
+      const ml=await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}&meta=true`,
+        {signal:AbortSignal.timeout(8000)});
+      if(ml.ok){
+        const mj=await ml.json();
+        if(mj.status==='success'&&mj.data){
+          const d=mj.data;
+          if(d.title) title=d.title.trim().slice(0,200);
+          if(d.description) desc=d.description.trim().slice(0,500);
+          if(d.image?.url) img=d.image.url;
+          if(d.logo?.url&&!img) img=d.logo.url;
+          if(title) fetched=true;
+        }
+      }
+    }catch(e){}
+
+    // 2. allorigins + codetabs — 通用 HTML 代理作備援
+    if(!fetched){
+      const proxies=[
+        {url:`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,type:'allorigins'},
+        {url:`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,type:'raw'},
+      ];
+      for(const p of proxies){
+        try{
+          const r=await fetch(p.url,{signal:AbortSignal.timeout(7000)});
+          if(!r.ok) continue;
+          const raw=await r.text();
+          const h=p.type==='allorigins'?(JSON.parse(raw).contents||''):raw;
+          if(!h||h.length<100) continue;
+          const og=name=>{
+            const m=h.match(new RegExp(`<meta[^>]+(?:property|name)=["']${name}["'][^>]*content=["']([^"'<>]{1,300})["']`,'i'))
+                   ||h.match(new RegExp(`<meta[^>]+content=["']([^"'<>]{1,300})["'][^>]*(?:property|name)=["']${name}["']`,'i'));
+            return m?dehtml(m[1].trim()):'';
+          };
+          const t=og('og:title')||og('twitter:title')||(h.match(/<title[^>]*>([^<]{1,200})<\/title>/i)||[])[1]||'';
+          const de=og('og:description')||og('twitter:description')||og('description')||'';
+          const im=og('og:image')||og('twitter:image')||'';
+          if(t){title=t.trim().slice(0,200);if(!desc)desc=de.trim().slice(0,500);if(!img)img=im;fetched=true;break;}
+          if(de&&!desc) desc=de.trim().slice(0,500);
+          if(im&&!img) img=im;
+        }catch(e){continue;}
+      }
     }
+
     if(title&&!document.getElementById('f-title').value) document.getElementById('f-title').value=title;
     if(desc&&!document.getElementById('f-desc').value) document.getElementById('f-desc').value=desc;
     if(img&&!document.getElementById('f-thumb').value) document.getElementById('f-thumb').value=img;
@@ -1195,68 +1240,59 @@ async function fetchMeta() {
   else if(ytId) toast('✅ YouTube 縮圖已就緒，正在 AI 分析…');
   btn.innerHTML=`${FETCH_ICON} 自動獲取`; btn.disabled=false;
 
-  // ── Auto-trigger AI tagging if key is set
-  if(S.geminiKey) {
+  // ── Auto-trigger AI tagging if any key is set
+  if(S.groqKey||S.geminiKey) {
     const t=document.getElementById('f-title').value;
     const de=document.getElementById('f-desc').value;
     if(t||de) await aiTag(t, de, url);
   }
 }
 
-// ── Gemini AI Auto-Tagging
+// ── AI Auto-Tagging (Groq first, Gemini fallback)
 async function aiTag(title, desc, url) {
-  if(!S.geminiKey){ toast('請先在設定填入 Gemini API Key'); return; }
+  if(!S.groqKey&&!S.geminiKey){ toast('請先在設定填入 Groq 或 Gemini API Key'); return; }
   const aiBtn=document.getElementById('ai-btn');
   if(aiBtn){ aiBtn.innerHTML='<span class="spin"></span> AI 分析中…'; aiBtn.disabled=true; }
+  const cats=S.categories.join('、')||'設計靈感、技術學習、旅遊、商業、美食';
+  const prompt=`你是個人知識管理助手。根據以下書籤，只回覆 JSON，不要其他文字：\nURL: ${url}\n標題: ${title}\n描述: ${desc}\n\n{"tags":["標籤1","標籤2","標籤3"],"category":"從此清單選一個或新建：${cats}","type":"article或video或image或post或website或other"}`;
   try {
-    const cats = S.categories.join('、') || '設計靈感、技術學習、旅遊、商業、美食';
-    const prompt=`你是一個個人知識管理助手。根據以下書籤資訊，用繁體中文回覆 JSON（只回 JSON，不要說其他話）：
-URL: ${url}
-標題: ${title}
-描述: ${desc}
-
-請回覆：
-{
-  "tags": ["標籤1","標籤2","標籤3"],
-  "category": "最合適的分類（從此清單選一個：${cats}，如都不合適可新建）",
-  "type": "article 或 video 或 image 或 post 或 website 或 other"
-}`;
-
-    const r=await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${S.geminiKey}`,
-      { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ contents:[{ parts:[{ text: prompt }] }],
-          generationConfig:{ maxOutputTokens:300, temperature:0.3 } }) }
-    );
-    if(!r.ok){ const e=await r.json(); throw new Error(e.error?.message||r.status); }
-    const data=await r.json();
-    const raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
-    const clean=raw.replace(/```json|```/g,'').trim();
-    const parsed=JSON.parse(clean);
-
-    // Apply tags
+    let raw='';
+    if(S.groqKey){
+      const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':`Bearer ${S.groqKey}`},
+        body:JSON.stringify({model:'llama-3.3-70b-versatile',
+          messages:[{role:'user',content:prompt}],max_tokens:300,temperature:0.3})
+      });
+      if(!r.ok){const e=await r.json();throw new Error(e.error?.message||r.status);}
+      const data=await r.json();
+      raw=data.choices?.[0]?.message?.content||'';
+    } else {
+      const r=await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${S.geminiKey}`,
+        {method:'POST',headers:{'Content-Type':'application/json'},
+         body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:300,temperature:0.3}})}
+      );
+      if(!r.ok){const e=await r.json();throw new Error(e.error?.message||r.status);}
+      const data=await r.json();
+      raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    }
+    const parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());
     if(Array.isArray(parsed.tags)) parsed.tags.forEach(t=>addTag(t));
-
-    // Apply category
-    if(parsed.category) {
+    if(parsed.category){
       if(!S.categories.includes(parsed.category)) S.categories.push(parsed.category);
-      persist();
-      renderCatSelect();
+      persist(); renderCatSelect();
       document.getElementById('f-cat').value=parsed.category;
     }
-
-    // Apply type
-    if(parsed.type && TICO[parsed.type]) {
+    if(parsed.type&&TICO[parsed.type]){
       S.curType=parsed.type;
       document.querySelectorAll('.type-btn').forEach(b=>b.classList.toggle('on',b.dataset.t===parsed.type));
     }
-
-    toast('🤖 AI 已自動填入標籤和分類');
+    toast(`🤖 ${S.groqKey?'Groq':'Gemini'} 已自動填入標籤和分類`);
   } catch(e){
-    console.error('Gemini error',e);
     toast('⚠️ AI 分析失敗：'+e.message.slice(0,40));
   }
-  if(aiBtn){ aiBtn.innerHTML='🤖 AI 分析'; aiBtn.disabled=false; }
+  if(aiBtn){ aiBtn.innerHTML='🤖 AI 自動標籤'; aiBtn.disabled=false; }
 }
 
 // Manual AI tag trigger
@@ -1551,6 +1587,18 @@ function renderReview() {
 // ════════════════════════════════════════════════════════════
 //  GitHub Sync (functions above)
 // ════════════════════════════════════════════════════════════
+function saveGroqKey() {
+  const v=document.getElementById('groq-key').value.trim();
+  if(v&&!v.match(/^•+$/)){
+    S.groqKey=v; localStorage.setItem(GK,v);
+    document.getElementById('groq-msg').textContent='✅ 已儲存！書籤標籤將使用 Groq llama-3.3-70b';
+    toast('🚀 Groq API Key 已儲存');
+  } else if(!v){
+    S.groqKey=''; localStorage.removeItem(GK);
+    document.getElementById('groq-msg').textContent='已清除，改用 Gemini';
+    toast('已清除 Groq Key');
+  }
+}
 function saveGeminiKey() {
   const v=document.getElementById('gem-key').value.trim();
   // Don't overwrite with placeholder dots
@@ -1588,7 +1636,11 @@ function loadGithubForm() {
   const gk=document.getElementById('gem-key');
   if(gk) gk.value=S.geminiKey?'•'.repeat(20):'';
   const gmsg=document.getElementById('gem-msg');
-  if(gmsg) gmsg.textContent=S.geminiKey?'✅ API Key 已設置':'尚未設置';
+  if(gmsg) gmsg.textContent=S.geminiKey?'✅ Gemini Key 已設置':'尚未設置';
+  const grk=document.getElementById('groq-key');
+  if(grk) grk.value=S.groqKey?'•'.repeat(20):'';
+  const grmsg=document.getElementById('groq-msg');
+  if(grmsg) grmsg.textContent=S.groqKey?'✅ Groq Key 已設置（標籤優先使用）':'尚未設置';
   const obMsg=document.getElementById('ob-msg');
   if(obMsg) obMsg.textContent=S.obsidian.repo?`✅ Vault 倉庫：${S.obsidian.repo} / ${S.obsidian.folder}`:'尚未設置';
 }
@@ -2125,7 +2177,7 @@ renderRevDot();
 checkUrlParams();
 setTimeout(()=>{
   const aiStatus=document.getElementById('ai-status');
-  if(aiStatus) aiStatus.textContent=S.geminiKey?'已設置 ✓':'';
+  if(aiStatus) aiStatus.textContent=S.groqKey?'Groq ✓':S.geminiKey?'Gemini ✓':'';
 },100);
 </script>
 </body>
