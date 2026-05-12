@@ -1335,6 +1335,7 @@ async function manualAiTag() {
 function saveBm() {
   const url=document.getElementById('f-url').value.trim();
   const title=document.getElementById('f-title').value.trim();
+  const eid=document.getElementById('f-id').value;
   const tiVal=document.getElementById('ti').value.trim().replace(/,/g,'');
   if(tiVal) addTag(tiVal);
   if(!url){document.getElementById('f-url').focus();toast('⚠️ 請填寫 URL');return;}
@@ -1353,7 +1354,6 @@ function saveBm() {
     type:S.curType,
     thumbnail:document.getElementById('f-thumb').value.trim()
   };
-  const eid=document.getElementById('f-id').value;
   if(eid){
     const i=S.bookmarks.findIndex(b=>b.id===eid);
     if(i>=0) S.bookmarks[i]={...S.bookmarks[i],...data,updatedAt:new Date().toISOString()};
