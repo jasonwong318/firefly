@@ -1717,7 +1717,7 @@ function updateStats() {
 //  Telegram Guide
 // ════════════════════════════════════════════════════════════
 const WORKER_CODE=`// Cloudflare Worker — Firefly Telegram Bot
-// 環境變數：BOT_TOKEN, GITEE_USER, GITEE_REPO, GITEE_PATH, GITEE_TOKEN
+// 環境變數：BOT_TOKEN, GITHUB_USER, GITHUB_REPO, GITHUB_PATH, GITHUB_TOKEN
 
 export default {
   async fetch(request, env) {
@@ -1969,7 +1969,7 @@ function getNoteTitle(){
   const md=getNoteContent();
   const m=md.match(/^#\s+(.+)/m);
   const raw=m?m[1]:document.getElementById('notes-title').value||'Firefly筆記';
-  return raw.replace(/[\/\\:*?"<>|]/g,'-').trim().slice(0,80);
+  return raw.replace(/[\/\\:*?"<>|]/g,'-').replace(/\s+/g,'-').trim().slice(0,80);
 }
 
 function copyNote(){
@@ -2009,8 +2009,14 @@ async function saveToObsidian(){
     const r=await fetch(`https://api.github.com/repos/${g.user}/${o.repo}/contents/${fileName}`,
       {method:'PUT',headers:ghHeaders(g.token),body:JSON.stringify(body)});
     if(r.ok){
-      obsMsg.textContent=`✅ 已存入：${o.repo}/${fileName}`;
-      toast('📓 筆記已存入 Obsidian Vault！');
+      const ghUrl=`https://github.com/${g.user}/${o.repo}/blob/main/${fileName.replace(/ /g,'%20')}`;
+      obsMsg.innerHTML=`✅ 已上傳至 GitHub！<br>
+        <a href="${esc(ghUrl)}" target="_blank" rel="noopener"
+          style="color:var(--accent);font-size:11px;word-break:break-all">${esc(ghUrl)}</a><br>
+        <span style="font-size:11px;color:var(--text3)">
+          ⚠️ 檔案在 GitHub Repo，需在 Obsidian 執行「Obsidian Git: Pull」後才會出現在本地 Vault
+        </span>`;
+      toast('📓 筆記已上傳至 GitHub Vault！');
     } else {
       const e=await r.json();
       obsMsg.textContent='❌ 失敗：'+(e.message||r.status);
