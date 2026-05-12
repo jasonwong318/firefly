@@ -1,6 +1,23 @@
 {
   "bookmarks": [
     {
+      "url": "https://www.youtube.com/watch?v=w1M9tS7oyiU",
+      "title": "13分鐘搞懂付費Claude全部功能｜核心功能完整介紹！",
+      "description": "李厂长来了 的 YouTube 影片",
+      "source": "youtube",
+      "category": "科技教學 & AI",
+      "tags": [
+        "Claude",
+        "AI",
+        "付費功能",
+        "教學"
+      ],
+      "type": "video",
+      "thumbnail": "https://img.youtube.com/vi/w1M9tS7oyiU/hqdefault.jpg",
+      "id": "mp2iaann0ok9",
+      "createdAt": "2026-05-12T10:46:54.323Z"
+    },
+    {
       "url": "https://www.youtube.com/watch?v=W85tARKofRQ",
       "title": "用NotebookLM x Gemini x GAS 生成互動測驗網頁",
       "description": "瑜閱地理 的 YouTube 影片",
@@ -264,5 +281,5 @@
     "設計靈感",
     "美食參考"
   ],
-  "lastSync": "2026-05-12T10:43:32.862Z"
+  "lastSync": "2026-05-12T10:46:56.831Z"
 }
