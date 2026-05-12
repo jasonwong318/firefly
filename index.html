@@ -124,7 +124,7 @@ body{font-family:-apple-system,'PingFang TC','Noto Sans TC','Helvetica Neue',san
   display:flex;align-items:flex-end;opacity:0;pointer-events:none;
   transition:opacity .25s;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
 .overlay.open{opacity:1;pointer-events:all}
-.sheet{width:100%;max-height:93vh;background:var(--surface);
+.sheet{width:100%;max-height:calc(93vh - env(safe-area-inset-top,0px));background:var(--surface);
   border-radius:22px 22px 0 0;overflow:hidden;display:flex;flex-direction:column;
   transform:translateY(100%);transition:transform .32s cubic-bezier(.32,.72,0,1)}
 .overlay.open .sheet{transform:translateY(0)}
@@ -660,7 +660,7 @@ html[data-theme="light"] .nav-plus{box-shadow:0 4px 20px rgba(217,119,6,.4)}
 
 <!-- ══ Detail Sheet ════════════════════════════════════════ -->
 <div class="overlay" id="det-ov" onclick="bgClose(event,'det-ov',closeDet)">
-  <div class="sheet" style="max-height:85vh">
+  <div class="sheet" style="max-height:calc(85vh - env(safe-area-inset-top,0px))">
     <div class="sheet-handle"></div>
     <div class="sheet-hdr">
       <div class="sheet-ttl" id="det-ttl"></div>
@@ -1821,6 +1821,22 @@ export default {
       return new Response(null, { headers: corsHeaders() });
     }
 
+    // GET /test — 驗證環境變數與 GitHub 連線是否正常
+    if (request.method === 'GET' && reqUrl.pathname === '/test') {
+      const missing = ['BOT_TOKEN','GITHUB_USER','GITHUB_REPO','GITHUB_PATH','GITHUB_TOKEN']
+        .filter(k => !env[k]);
+      if (missing.length) return jsonRes({ ok: false, error: '缺少環境變數: ' + missing.join(', ') });
+      const ghBase = \`https://api.github.com/repos/\${env.GITHUB_USER}/\${env.GITHUB_REPO}/contents/\${env.GITHUB_PATH}\`;
+      const ghHdrs = { 'Authorization': \`token \${env.GITHUB_TOKEN}\`, 'Accept': 'application/vnd.github.v3+json' };
+      try {
+        const r = await fetch(ghBase, { headers: ghHdrs });
+        if (!r.ok) return jsonRes({ ok: false, error: \`GitHub 回應 \${r.status}，請確認 Token 和 Repo 路徑\` });
+        return jsonRes({ ok: true, message: \`✅ 連線正常！GitHub \${env.GITHUB_USER}/\${env.GITHUB_REPO}/\${env.GITHUB_PATH}\` });
+      } catch(e) {
+        return jsonRes({ ok: false, error: 'GitHub 連線失敗: ' + e.message });
+      }
+    }
+
     // GET /meta — Firefly App 呼叫，取得任意 URL 的 metadata（標題/描述/封面圖）
     if (request.method === 'GET' && reqUrl.pathname === '/meta') {
       const target = reqUrl.searchParams.get('url');
@@ -1831,18 +1847,44 @@ export default {
 
     // POST / — Telegram Bot webhook
     if (request.method !== 'POST') return new Response('OK');
-    const update = await request.json();
+    let update;
+    try { update = await request.json(); } catch(e) { return new Response('OK'); }
     const msg = update.message?.text || '';
     const chatId = update.message?.chat?.id;
     if (!chatId) return new Response('OK');
 
+    // /test 指令：在 Telegram 聊天中測試連線
+    if (msg.trim() === '/test') {
+      const missing = ['BOT_TOKEN','GITHUB_USER','GITHUB_REPO','GITHUB_PATH','GITHUB_TOKEN']
+        .filter(k => !env[k]);
+      if (missing.length) {
+        await tgSend(env.BOT_TOKEN, chatId, '❌ 缺少環境變數: ' + missing.join(', '));
+        return new Response('OK');
+      }
+      const ghBase = \`https://api.github.com/repos/\${env.GITHUB_USER}/\${env.GITHUB_REPO}/contents/\${env.GITHUB_PATH}\`;
+      const ghHdrs = { 'Authorization': \`token \${env.GITHUB_TOKEN}\`, 'Accept': 'application/vnd.github.v3+json' };
+      try {
+        const r = await fetch(ghBase, { headers: ghHdrs });
+        if (!r.ok) {
+          await tgSend(env.BOT_TOKEN, chatId, \`❌ GitHub 連線失敗 (HTTP \${r.status})\\n請確認 GITHUB_TOKEN 和 Repo 路徑是否正確\`);
+        } else {
+          await tgSend(env.BOT_TOKEN, chatId, \`✅ 連線正常！\\nGitHub: \${env.GITHUB_USER}/\${env.GITHUB_REPO}\\n路徑: \${env.GITHUB_PATH}\`);
+        }
+      } catch(e) {
+        await tgSend(env.BOT_TOKEN, chatId, '❌ GitHub 連線錯誤: ' + e.message);
+      }
+      return new Response('OK');
+    }
+
     const urlMatch = msg.match(/https?:\\/\\/[^\\s]+/);
     if (!urlMatch) {
-      await tgSend(env.BOT_TOKEN, chatId, '請發送包含網址的訊息 😊\\n\\n支援：YouTube、小紅書、Instagram、一般網站等');
+      await tgSend(env.BOT_TOKEN, chatId, '請發送包含網址的訊息 😊\\n\\n支援：YouTube、小紅書、Instagram、一般網站等\\n\\n發送 /test 可測試 GitHub 連線');
       return new Response('OK');
     }
     const url = urlMatch[0];
-    const meta = await fetchUrlMeta(url);
+
+    let meta;
+    try { meta = await fetchUrlMeta(url); } catch(e) { meta = { title: url, description: '', image: '', type: 'article', source: 'other' }; }
 
     const bm = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2,5),
@@ -1858,26 +1900,38 @@ export default {
       'Accept': 'application/vnd.github.v3+json',
       'Content-Type': 'application/json'
     };
-    const getR = await fetch(ghBase, { headers: ghHdrs });
-    let sha = '', existing = { bookmarks: [], categories: [] };
-    if (getR.ok) {
-      const gd = await getR.json();
-      sha = gd.sha || '';
-      try { existing = JSON.parse(decodeURIComponent(escape(atob(gd.content.replace(/\\n/g, ''))))); } catch(e) {}
-    }
-    const alreadyExists = (existing.bookmarks||[]).some(b => b.url === url);
-    if (!alreadyExists) existing.bookmarks = [bm, ...(existing.bookmarks||[])];
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(existing))));
-    const body = { message: 'tg: ' + url, content };
-    if (sha) body.sha = sha;
-    await fetch(ghBase, { method: 'PUT', headers: ghHdrs, body: JSON.stringify(body) });
 
-    const icon = { youtube:'▶️', xiaohongshu:'📕', instagram:'📷', facebook:'👥', douyin:'🎵' }[meta.source] || '🔗';
-    await tgSend(env.BOT_TOKEN, chatId,
-      alreadyExists
-        ? \`⚠️ 此連結已存在\\n\\n📌 \${meta.title}\`
-        : \`✅ 已保存！\\n\\n\${icon} \${meta.title}\\n\\n在 App 點「⬇️ 載入」同步\`
-    );
+    try {
+      const getR = await fetch(ghBase, { headers: ghHdrs });
+      if (!getR.ok) {
+        await tgSend(env.BOT_TOKEN, chatId, \`❌ 無法讀取 GitHub (HTTP \${getR.status})\\n請發送 /test 診斷問題\`);
+        return new Response('OK');
+      }
+      const gd = await getR.json();
+      const sha = gd.sha || '';
+      let existing = { bookmarks: [], categories: [] };
+      try { existing = JSON.parse(decodeURIComponent(escape(atob(gd.content.replace(/\\n/g, ''))))); } catch(e) {}
+
+      const alreadyExists = (existing.bookmarks||[]).some(b => b.url === url);
+      if (!alreadyExists) existing.bookmarks = [bm, ...(existing.bookmarks||[])];
+      const content = btoa(unescape(encodeURIComponent(JSON.stringify(existing))));
+      const body = { message: 'tg: ' + url, content };
+      if (sha) body.sha = sha;
+      const putR = await fetch(ghBase, { method: 'PUT', headers: ghHdrs, body: JSON.stringify(body) });
+      if (!putR.ok) {
+        await tgSend(env.BOT_TOKEN, chatId, \`❌ 儲存失敗 (HTTP \${putR.status})\\n請發送 /test 診斷問題\`);
+        return new Response('OK');
+      }
+
+      const icon = { youtube:'▶️', xiaohongshu:'📕', instagram:'📷', facebook:'👥', douyin:'🎵' }[meta.source] || '🔗';
+      await tgSend(env.BOT_TOKEN, chatId,
+        alreadyExists
+          ? \`⚠️ 此連結已存在\\n\\n📌 \${meta.title}\`
+          : \`✅ 已保存！\\n\\n\${icon} \${meta.title}\\n\\n在 App 點「⬇️ 載入」同步\`
+      );
+    } catch(e) {
+      await tgSend(env.BOT_TOKEN, chatId, '❌ 發生錯誤: ' + e.message + '\\n\\n請發送 /test 診斷問題');
+    }
     return new Response('OK');
   }
 };
