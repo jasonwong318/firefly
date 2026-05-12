@@ -1746,11 +1746,6 @@ async function githubLoad() {
       syncMsg('✅ 已是最新 '+new Date().toLocaleTimeString('zh-TW'));
       toast('✅ 數據已是最新'); return;
     }
-    const msg=`GitHub 有 ${remote.length} 筆，本地有 ${S.bookmarks.length} 筆。\n\n`+
-      `新增（GitHub 有、本地無）：${newItems.length} 筆\n`+
-      `本地獨有（未上傳）：${localOnlyCount} 筆\n\n`+
-      `選「確定」＝ 合併（保留全部）\n選「取消」＝ 取消操作`;
-    if(!confirm(msg)){syncMsg('');return;}
     const remoteUrls=new Set(remote.map(b=>b.url));
     const localOnly=S.bookmarks.filter(b=>!remoteUrls.has(b.url));
     S.bookmarks=[...remote,...localOnly].sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
