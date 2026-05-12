@@ -1821,14 +1821,17 @@ export default {
       const missing = ['BOT_TOKEN','GITHUB_USER','GITHUB_REPO','GITHUB_PATH','GITHUB_TOKEN']
         .filter(k => !env[k]);
       if (missing.length) return jsonRes({ ok: false, error: '缺少環境變數: ' + missing.join(', ') });
+      const tokenPreview = env.GITHUB_TOKEN.slice(0,8) + '...' + env.GITHUB_TOKEN.slice(-4);
       const ghBase = \`https://api.github.com/repos/\${env.GITHUB_USER}/\${env.GITHUB_REPO}/contents/\${env.GITHUB_PATH}\`;
       const ghHdrs = { 'Authorization': \`token \${env.GITHUB_TOKEN}\`, 'Accept': 'application/vnd.github.v3+json' };
+      const diag = { url: ghBase, token_preview: tokenPreview, token_length: env.GITHUB_TOKEN.length };
       try {
         const r = await fetch(ghBase, { headers: ghHdrs });
-        if (!r.ok) return jsonRes({ ok: false, error: \`GitHub 回應 \${r.status}，請確認 Token 和 Repo 路徑\` });
-        return jsonRes({ ok: true, message: \`✅ 連線正常！GitHub \${env.GITHUB_USER}/\${env.GITHUB_REPO}/\${env.GITHUB_PATH}\` });
+        const body = await r.text();
+        if (!r.ok) return jsonRes({ ok: false, http_status: r.status, error: \`GitHub 回應 \${r.status}\`, diag, github_message: body.slice(0,200) });
+        return jsonRes({ ok: true, message: \`✅ 連線正常！\`, diag });
       } catch(e) {
-        return jsonRes({ ok: false, error: 'GitHub 連線失敗: ' + e.message });
+        return jsonRes({ ok: false, error: 'GitHub 連線失敗: ' + e.message, diag });
       }
     }
 
