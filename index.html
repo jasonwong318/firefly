@@ -984,7 +984,7 @@ function cardHTML(b) {
   const date=fmtDate(b.createdAt);
   const srBadge=b.sr?`<span class="sr-badge">📅 回顧中</span>`:'';
   const th=b.thumbnail
-    ?`<img class="card-thumb" src="${esc(b.thumbnail)}" loading="lazy" onerror="this.outerHTML='<div class=card-thumb-ph>${s.icon}</div>'">`
+    ?`<img class="card-thumb" src="${esc(b.thumbnail)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.outerHTML='<div class=card-thumb-ph>${s.icon}</div>'">`
     :`<div class="card-thumb-ph">${s.icon}</div>`;
   // Use data attributes to avoid any HTML quoting issues
   return `<div class="card card-item" data-id="${b.id}" role="button" tabindex="0">
@@ -1393,7 +1393,7 @@ function openDet(id) {
   if(!b) return;
   const s=SRC[b.source]||SRC.other;
   document.getElementById('det-ttl').textContent=b.title||b.url;
-  const thumb=b.thumbnail?`<img class="det-thumb" src="${esc(b.thumbnail)}" onerror="this.style.display='none'" loading="lazy">`:'';
+  const thumb=b.thumbnail?`<img class="det-thumb" src="${esc(b.thumbnail)}" onerror="this.style.display='none'" loading="lazy" referrerpolicy="no-referrer">`:'';
   const tags=(b.tags||[]).map(t=>`<div class="det-tag" data-det-tag="${esc(t)}">#${esc(t)}</div>`).join('');
   const date=b.createdAt?new Date(b.createdAt).toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'}):'';
   const srInfo=b.sr?`<span class="ibd">📅 下次 ${b.sr.nextReview||'今天'}</span>`:'';
@@ -1592,7 +1592,7 @@ function renderReview() {
     <div class="rev-progress"><div class="rev-progress-bar" style="width:${pct}%"></div></div>
     <div class="rev-card">
       ${b.thumbnail
-        ?`<img class="rev-card-img" src="${esc(b.thumbnail)}" onerror="this.outerHTML='<div class=rev-card-ph>${s.icon}</div>'" loading="lazy">`
+        ?`<img class="rev-card-img" src="${esc(b.thumbnail)}" onerror="this.outerHTML='<div class=rev-card-ph>${s.icon}</div>'" loading="lazy" referrerpolicy="no-referrer">`
         :`<div class="rev-card-ph">${s.icon}</div>`}
       <div class="rev-card-body">
         <div class="rev-card-src">
