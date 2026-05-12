@@ -1,6 +1,18 @@
 {
   "bookmarks": [
     {
+      "url": "https://youtu.be/Sp8MM1HMdB4?si=YunDAr9l4gJ44wak",
+      "title": "【訪談 Claude 香港用戶】如何付款、用 VPS 防止帳號被封 + 處理影片字幕及發佈到社交平台",
+      "description": "阿石OMP 的 YouTube 影片",
+      "source": "youtube",
+      "category": "",
+      "tags": [],
+      "type": "video",
+      "thumbnail": "https://img.youtube.com/vi/Sp8MM1HMdB4/hqdefault.jpg",
+      "id": "mp2rvrk0dfz1",
+      "createdAt": "2026-05-12T15:15:32.544Z"
+    },
+    {
       "url": "https://youtube.com/shorts/JBEH-p9_DsM?si=qwqSTc8Q6yy5bGwd",
       "title": "GitHub 开源！个人财富管理神器 #github #逛逛GitHub  #开源",
       "description": "逛逛GitHub 的 YouTube 影片",
@@ -84,14 +96,13 @@
       "id": "mp14l33q794",
       "url": "http://xhslink.com/o/1sK9YxyAuav",
       "title": "人一定要疯狂爱上什么东西，才不至于被这无趣的生活吞没。我们的肉身只需要很少的粮食就能活，而精神需要山川、河流与自由。怎可一生忙碌，只为喂养一副终将衰老的躯壳，却从未善待过相伴至死的灵魂。#总有一句话戳心 #情绪共鸣 #治愈 #自愈 #文字的力量 - 小红书",
-      "description": "3 亿人的生活经验，都在小红书",
-      "thumbnail": "http://sns-webpic-qc.xhscdn.com/202605122223/e4fa97782a9420bcb41e08ee8ac843de/1040g2sg31u117mdc1akg4bnem8d6lae5n6ihif0!nd_dft_wlteh_jpg_3",
+      "description": "",
+      "thumbnail": "",
       "source": "xiaohongshu",
       "tags": [],
       "category": "",
       "createdAt": "2026-05-11T11:35:36.950Z",
-      "type": "article",
-      "updatedAt": "2026-05-12T14:23:49.614Z"
+      "type": "article"
     },
     {
       "id": "moy4yya24f5",
@@ -289,17 +300,17 @@
     }
   ],
   "categories": [
+    "設計靈感",
+    "技術學習",
+    "美食參考",
     "旅遊",
     "商業",
+    "影片",
+    "圖片欣賞",
     "其他",
     "科技教學 & AI",
     "CIA & CISA",
-    "財經 & 股票投資",
-    "設計靈感",
-    "美食參考",
-    "技術學習",
-    "影片",
-    "圖片欣賞"
+    "財經 & 股票投資"
   ],
-  "lastSync": "2026-05-12T14:23:52.116Z"
+  "lastSync": "2026-05-12T15:15:35.047Z"
 }
