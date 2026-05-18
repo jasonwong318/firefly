@@ -19,10 +19,14 @@
       "description": "",
       "thumbnail": "",
       "source": "xiaohongshu",
-      "tags": [],
-      "category": "",
+      "tags": [
+        "小紅書",
+        "影片"
+      ],
+      "category": "其他",
       "createdAt": "2026-05-18T00:10:38.445Z",
-      "type": "article"
+      "type": "video",
+      "updatedAt": "2026-05-18T04:15:18.403Z"
     },
     {
       "id": "mpag3t3j6qh",
@@ -423,5 +427,5 @@
     "財經 & 股票投資",
     "閱讀"
   ],
-  "lastSync": "2026-05-18T04:15:11.490Z"
+  "lastSync": "2026-05-18T04:15:20.905Z"
 }
