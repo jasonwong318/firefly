@@ -19,18 +19,6 @@
       "updatedAt": "2026-06-02T13:48:46.733Z"
     },
     {
-      "id": "mprk6sr0ow5",
-      "url": "https://www.facebook.com/share/r/1BJV6Zfqrd/?mibextid=wwXIfr",
-      "title": "Facebook",
-      "description": "",
-      "thumbnail": "",
-      "source": "facebook",
-      "tags": [],
-      "category": "",
-      "createdAt": "2026-05-29T23:34:24.780Z",
-      "type": "article"
-    },
-    {
       "id": "mpfp0r3d4wd",
       "url": "https://youtu.be/_je6aq87I9c?si=4khERwyuzs4mKQ_T",
       "title": "[Claude Code 입문 E25] Claude Code 커스텀 스킬 작성: SKILL.md 구조부터 description 최적화까지",
@@ -493,5 +481,5 @@
     "財經 & 股票投資",
     "閱讀"
   ],
-  "lastSync": "2026-06-02T13:50:42.323Z"
+  "lastSync": "2026-06-02T13:56:18.791Z"
 }
