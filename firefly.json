@@ -35,12 +35,18 @@
       "url": "https://www.instagram.com/reel/DXPF5GrEjD9/?igsh=MTRhYWZnbjM5emF2YQ==",
       "title": "Carl Lee &#x5728; Instagram: &quot;&#x4f60;&#x600e;&#x4e48;&#x77e5;&#x9053;147&#x4e2a;AI&#x5458;&#x5de5;&#x6211;&#x4e00;&#x952e;&#x90e8;&#x7f72;&#x4e86;&#xff1f; #ai #agent #vibecoding #github&quot;",
       "description": "2,323 likes, 13 comments -  carllee2077 &#x65bc; April 17, 2026 : &quot;&#x4f60;&#x600e;&#x4e48;&#x77e5;&#x9053;147&#x4e2a;AI&#x5458;&#x5de5;&#x6211;&#x4e00;&#x952e;&#x90e8;&#x7f72;&#x4e86;&#xff1f; #ai #agent #vibecoding #github&quot;.",
-      "thumbnail": "",
+      "thumbnail": "https://scontent.cdninstagram.com/v/t51.71878-15/673068263_1327248215915346_3399650046612831450_n.jpg?stp=cmp1_dst-jpg_e35_s640x640_tt6&_nc_cat=111&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D&_nc_ohc=LPB2v_xpdKoQ7kNvwFO0T6O&_nc_oc=AdqSwzpMoOLkGRaNpS98xyBYpFetmaRW9-c8qL1d6HjAqxE7Yc6AeoJFw7jve5syvf8&_nc_zt=23&_nc_ht=scontent.cdninstagram.com&_nc_gid=uVefnqGgfOWxduozLLrYBg&_nc_ss=73689&oh=00_Af8wsI0qQH73V50DadhPLw-sWYsX_LZ2rQz8u8JoDCptsQ&oe=6A24C0A8",
       "source": "instagram",
-      "tags": [],
-      "category": "",
+      "tags": [
+        "AI",
+        "agent",
+        "vibecoding",
+        "github"
+      ],
+      "category": "科技教學 & AI",
       "createdAt": "2026-05-23T07:18:10.922Z",
-      "type": "article"
+      "type": "video",
+      "updatedAt": "2026-06-02T13:49:33.280Z"
     },
     {
       "id": "mpfp0r3d4wd",
@@ -505,5 +511,5 @@
     "財經 & 股票投資",
     "閱讀"
   ],
-  "lastSync": "2026-06-02T13:49:27.821Z"
+  "lastSync": "2026-06-02T13:49:35.785Z"
 }
