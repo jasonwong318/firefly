@@ -6,11 +6,12 @@
       "title": "NotebookLM 結合 AI Agent 神配搭：慳返Token、直接減輕上下文壓力!?",
       "description": "DMP深度學習 的 YouTube 影片",
       "thumbnail": "https://i.ytimg.com/vi/ObD0Dudmnes/hqdefault.jpg",
-      "source": "other",
+      "source": "youtube",
       "tags": [],
       "category": "",
       "createdAt": "2026-06-02T06:03:17.622Z",
-      "type": "video"
+      "type": "video",
+      "updatedAt": "2026-06-02T06:03:55.315Z"
     },
     {
       "id": "mprk6sr0ow5",
@@ -499,5 +500,5 @@
     "財經 & 股票投資",
     "閱讀"
   ],
-  "lastSync": "2026-06-02T06:03:37.710Z"
+  "lastSync": "2026-06-02T06:03:57.818Z"
 }
