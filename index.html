@@ -67,40 +67,49 @@ body{font-family:-apple-system,'PingFang TC','Noto Sans TC','Helvetica Neue',san
 .nav-plus svg{width:26px;height:26px}
 
 /* ── Filter bar ── */
-.filter-scroll{display:flex;gap:7px;padding:10px 14px;
+.filter-wrap{background:var(--surface);border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:10}
+.filter-scroll{display:flex;gap:7px;padding:8px 12px 4px;
   overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .filter-scroll::-webkit-scrollbar{display:none}
+.filter-tags{display:flex;gap:6px;padding:4px 12px 8px;
+  overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.filter-tags::-webkit-scrollbar{display:none}
+.filter-tags:empty{display:none}
 .chip{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:20px;
   font-size:13px;font-weight:500;white-space:nowrap;cursor:pointer;flex-shrink:0;
   border:1px solid var(--border);background:var(--surface);color:var(--text2);
   transition:all .15s;user-select:none}
 .chip.on{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700}
 .chip .cn{opacity:.65;font-size:11px}
+.tag-chip{font-size:12px;padding:3px 10px;border-radius:14px;white-space:nowrap;cursor:pointer;
+  flex-shrink:0;border:1px solid var(--border);background:var(--surface2);color:var(--text2);
+  transition:all .15s;user-select:none}
+.tag-chip.on{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
 
 /* ── Card grid ── */
-.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
-  gap:12px;padding:4px 14px 14px}
+.card-grid{display:grid;grid-template-columns:repeat(2,1fr);
+  gap:10px;padding:10px 12px 80px}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
   overflow:hidden;position:relative;transition:border-color .2s,transform .15s}
 .card:active{transform:scale(.985)}
-.card-thumb{width:100%;height:128px;object-fit:cover;background:var(--surface2);display:block}
-.card-thumb-ph{width:100%;height:128px;background:var(--surface2);
-  display:flex;align-items:center;justify-content:center;font-size:42px}
-.card-body{padding:10px 12px 12px}
-.card-meta{display:flex;align-items:center;gap:5px;margin-bottom:6px;flex-wrap:wrap}
-.src-badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:8px;
+.card-thumb{width:100%;height:110px;object-fit:cover;background:var(--surface2);display:block}
+.card-thumb-ph{width:100%;height:110px;background:var(--surface2);
+  display:flex;align-items:center;justify-content:center;font-size:32px}
+.card-body{padding:8px 9px 9px}
+.card-meta{display:flex;align-items:center;gap:4px;margin-bottom:5px;flex-wrap:wrap}
+.src-badge{font-size:10px;font-weight:600;padding:2px 6px;border-radius:7px;
   background:var(--surface2);color:var(--text2)}
-.cat-badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:8px;
+.cat-badge{font-size:10px;font-weight:600;padding:2px 6px;border-radius:7px;
   background:var(--accent-dim);color:var(--accent)}
-.card-date{font-size:11px;color:var(--text3);margin-left:auto}
+.card-date{font-size:10px;color:var(--text3);margin-left:auto}
 .sr-badge{font-size:10px;padding:2px 6px;border-radius:7px;
   background:rgba(16,185,129,.15);color:var(--success);font-weight:700}
-.card-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:5px;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.45}
-.card-desc{font-size:12px;color:var(--text2);line-height:1.55;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:8px}
-.card-tags{display:flex;flex-wrap:wrap;gap:4px}
-.tag-pill{font-size:11px;padding:2px 7px;border-radius:7px;background:var(--accent-dim);color:var(--accent)}
+.card-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4}
+.card-desc{display:none}
+.card-tags{display:flex;flex-wrap:wrap;gap:3px}
+.tag-pill{font-size:10px;padding:2px 6px;border-radius:6px;background:var(--accent-dim);color:var(--accent)}
 /* Always-visible menu button */
 .card-menu-btn{position:absolute;top:7px;right:7px;
   width:30px;height:30px;border-radius:9px;
@@ -199,6 +208,12 @@ body{font-family:-apple-system,'PingFang TC','Noto Sans TC','Helvetica Neue',san
   border:none;border-radius:var(--r);font-size:16px;font-weight:800;
   cursor:pointer;margin-top:8px;transition:opacity .15s;font-family:inherit}
 .save-btn:active{opacity:.82}
+.adv-toggle{width:100%;background:none;border:none;border-top:1px solid var(--border);
+  color:var(--text3);font-size:12px;font-weight:600;padding:11px 0 4px;
+  cursor:pointer;text-align:center;font-family:inherit;letter-spacing:.3px;margin-top:4px}
+.adv-toggle:active{color:var(--text)}
+.adv-body{display:none}
+.adv-body.open{display:block}
 
 /* ── Detail ── */
 .det-thumb{width:100%;border-radius:var(--r-sm);margin-bottom:12px;max-height:200px;object-fit:cover;display:block}
@@ -412,7 +427,10 @@ html[data-theme="light"] .nav-plus{box-shadow:0 4px 20px rgba(217,119,6,.4)}
 
   <!-- Feed -->
   <div id="view-feed">
-    <div class="filter-scroll" id="filter-bar"></div>
+    <div class="filter-wrap">
+      <div class="filter-scroll" id="filter-bar"></div>
+      <div class="filter-tags" id="filter-tags-bar"></div>
+    </div>
     <div class="card-grid" id="card-grid"></div>
   </div>
 
@@ -651,7 +669,25 @@ html[data-theme="light"] .nav-plus{box-shadow:0 4px 20px rgba(217,119,6,.4)}
         </div>
         <div class="sug-row" id="tag-sug"></div>
       </div>
-      <div class="fg"><label class="fl">縮圖 URL（選填）</label><input type="url" class="fi" id="f-thumb" placeholder="https://…"></div>
+      <button class="adv-toggle" id="adv-toggle" onclick="toggleAdv()">▾ 進階選項</button>
+      <div class="adv-body" id="adv-body">
+        <div class="fg" style="margin-top:12px">
+          <label class="fl">來源平台</label>
+          <select class="fse" id="f-src">
+            <option value="other">其他 / 一般網站</option>
+            <option value="youtube">YouTube</option>
+            <option value="instagram">Instagram</option>
+            <option value="facebook">Facebook</option>
+            <option value="threads">Threads</option>
+            <option value="xiaohongshu">小紅書</option>
+            <option value="douyin">抖音 / TikTok</option>
+            <option value="twitter">X (Twitter)</option>
+            <option value="weibo">微博</option>
+            <option value="telegram">Telegram</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">縮圖 URL（選填）</label><input type="url" class="fi" id="f-thumb" placeholder="https://…"></div>
+      </div>
       <input type="hidden" id="f-id">
       <button class="save-btn" onclick="saveBm()">💾 儲存書籤</button>
     </div>
@@ -962,6 +998,12 @@ function renderFilters() {
     h+=`<div class="chip ${S.fCat===c?'on':''}" onclick="setFilter('${esc(c)}','')">${esc(c)} <span class="cn">${n}</span></div>`;
   });
   document.getElementById('filter-bar').innerHTML=h;
+  // popular tags row (top 8)
+  const freq={};
+  S.bookmarks.forEach(b=>(b.tags||[]).forEach(t=>{freq[t]=(freq[t]||0)+1;}));
+  const topTags=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([t])=>t);
+  const tb=document.getElementById('filter-tags-bar');
+  if(tb) tb.innerHTML=topTags.map(t=>`<div class="tag-chip ${S.fTag===t?'on':''}" onclick="setFilter('','${esc(t)}')">#${esc(t)}</div>`).join('');
   document.getElementById('cnt-badge').textContent=filtered().length;
 }
 
@@ -980,7 +1022,7 @@ function renderCards() {
 
 function cardHTML(b) {
   const s=SRC[b.source]||SRC.other;
-  const tags=(b.tags||[]).slice(0,3).map(t=>`<span class="tag-pill">#${esc(t)}</span>`).join('');
+  const tags=(b.tags||[]).slice(0,2).map(t=>`<span class="tag-pill">#${esc(t)}</span>`).join('');
   const date=fmtDate(b.createdAt);
   const srBadge=b.sr?`<span class="sr-badge">📅 回顧中</span>`:'';
   const th=b.thumbnail
@@ -1091,8 +1133,9 @@ function openAdd() {
   document.querySelectorAll('.type-btn').forEach(b=>b.classList.toggle('on',b.dataset.t==='article'));
   renderTagPills();
   renderCatSelect();
+  document.getElementById('adv-body').classList.remove('open');
+  document.getElementById('adv-toggle').textContent='▾ 進階選項';
   document.getElementById('add-ov').classList.add('open');
-  // Show AI key status
   const aiStatus=document.getElementById('ai-status');
   if(aiStatus) aiStatus.textContent=S.groqKey?'Groq ✓':S.geminiKey?'Gemini ✓':'未設置';
   setTimeout(()=>document.getElementById('f-url').focus(),380);
@@ -1114,11 +1157,21 @@ function openEdit(id) {
   document.getElementById('add-ttl').textContent='✏️ 編輯書籤';
   document.querySelectorAll('.type-btn').forEach(btn=>btn.classList.toggle('on',btn.dataset.t===S.curType));
   renderTagPills(); renderCatSelect();
+  const hasAdv=b.source&&b.source!=='other'||b.thumbnail;
+  document.getElementById('adv-body').classList.toggle('open',!!hasAdv);
+  document.getElementById('adv-toggle').textContent=hasAdv?'▴ 收起進階選項':'▾ 進階選項';
   closeDet();
   document.getElementById('add-ov').classList.add('open');
 }
 
 function closeAdd() { document.getElementById('add-ov').classList.remove('open'); }
+
+function toggleAdv() {
+  const body=document.getElementById('adv-body');
+  const btn=document.getElementById('adv-toggle');
+  const open=body.classList.toggle('open');
+  btn.textContent=open?'▴ 收起進階選項':'▾ 進階選項';
+}
 
 function setType(btn) {
   S.curType=btn.dataset.t;
