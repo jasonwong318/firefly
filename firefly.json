@@ -7,11 +7,16 @@
       "description": "DMP深度學習 的 YouTube 影片",
       "thumbnail": "https://i.ytimg.com/vi/ObD0Dudmnes/hqdefault.jpg",
       "source": "youtube",
-      "tags": [],
-      "category": "",
+      "tags": [
+        "NotebookLM",
+        "AI Agent",
+        "深度學習",
+        "上下文壓力"
+      ],
+      "category": "科技教學 & AI",
       "createdAt": "2026-06-02T06:03:17.622Z",
       "type": "video",
-      "updatedAt": "2026-06-02T06:03:55.315Z"
+      "updatedAt": "2026-06-02T13:48:46.733Z"
     },
     {
       "id": "mprk6sr0ow5",
@@ -500,5 +505,5 @@
     "財經 & 股票投資",
     "閱讀"
   ],
-  "lastSync": "2026-06-02T13:48:31.820Z"
+  "lastSync": "2026-06-02T13:48:49.238Z"
 }
