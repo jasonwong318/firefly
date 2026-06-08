@@ -28,14 +28,15 @@
     {
       "id": "mq3qdwh1yfp",
       "url": "https://www.facebook.com/share/p/1BM13zRamj/?mibextid=wwXIfr",
-      "title": "Facebook",
+      "title": "Anthropic 內部怎麼使用Skills",
       "description": "",
       "thumbnail": "",
       "source": "facebook",
       "tags": [],
       "category": "",
       "createdAt": "2026-06-07T12:01:08.005Z",
-      "type": "article"
+      "type": "article",
+      "updatedAt": "2026-06-08T13:44:47.625Z"
     },
     {
       "id": "mq32scny67l",
@@ -578,5 +579,5 @@
     "財經 & 股票投資",
     "閱讀"
   ],
-  "lastSync": "2026-06-08T13:37:53.750Z"
+  "lastSync": "2026-06-08T13:44:51.984Z"
 }
