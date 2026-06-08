@@ -15,14 +15,15 @@
     {
       "id": "mq482l2iw19",
       "url": "https://www.facebook.com/share/p/1DetgTY9uK/?mibextid=wwXIfr",
-      "title": "Facebook",
-      "description": "",
-      "thumbnail": "",
+      "title": "Claude & CLI 工具",
+      "description": "Explore the things you love.",
+      "thumbnail": "https://static.xx.fbcdn.net/rsrc.php/yB/r/83zWJdc6PJI.webp",
       "source": "facebook",
       "tags": [],
-      "category": "",
+      "category": "其他",
       "createdAt": "2026-06-07T20:16:13.098Z",
-      "type": "article"
+      "type": "post",
+      "updatedAt": "2026-06-08T13:37:50.254Z"
     },
     {
       "id": "mq3qdwh1yfp",
@@ -577,5 +578,5 @@
     "財經 & 股票投資",
     "閱讀"
   ],
-  "lastSync": "2026-06-08T13:37:35.361Z"
+  "lastSync": "2026-06-08T13:37:53.750Z"
 }
