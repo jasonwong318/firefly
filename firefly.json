@@ -3,14 +3,15 @@
     {
       "id": "mq7u0ewhtx3",
       "url": "https://www.facebook.com/share/p/14dJcd23Brv/?mibextid=wwXIfr",
-      "title": "Facebook",
+      "title": "AI Agent 的下一步：不是更多 prompt，而是讓它自己跑 loop",
       "description": "",
       "thumbnail": "",
       "source": "facebook",
       "tags": [],
       "category": "",
       "createdAt": "2026-06-10T08:53:41.873Z",
-      "type": "article"
+      "type": "article",
+      "updatedAt": "2026-06-10T22:26:18.585Z"
     },
     {
       "id": "mq7ty55z3dh",
@@ -616,5 +617,5 @@
     "財經 & 股票投資",
     "閱讀"
   ],
-  "lastSync": "2026-06-10T22:25:55.942Z"
+  "lastSync": "2026-06-10T22:26:21.093Z"
 }
