@@ -20,14 +20,15 @@
     {
       "id": "mq7ty55z3dh",
       "url": "https://www.facebook.com/share/18qffENuSX/?mibextid=wwXIfr",
-      "title": "Facebook",
-      "description": "",
-      "thumbnail": "",
+      "title": "對 Claude Fable 5 下指令的最佳實踐",
+      "description": "Explore the things you love.",
+      "thumbnail": "https://static.xx.fbcdn.net/rsrc.php/y0/r/U45qBJmWVHU.webp",
       "source": "facebook",
       "tags": [],
-      "category": "",
+      "category": "科技教學 & AI",
       "createdAt": "2026-06-10T08:51:55.943Z",
-      "type": "article"
+      "type": "post",
+      "updatedAt": "2026-06-10T22:30:24.782Z"
     },
     {
       "id": "mq7b1hzfiqi",
@@ -396,14 +397,15 @@
     {
       "id": "mp20gd87roq",
       "url": "https://www.facebook.com/share/p/18g7UgQEPb/?mibextid=wwXIfr",
-      "title": "Facebook",
+      "title": "用 Claude Code 做月復盤 讓Lesson Learned 持續累積",
       "description": "",
       "thumbnail": "",
       "source": "facebook",
       "tags": [],
       "category": "",
       "createdAt": "2026-05-12T02:27:44.503Z",
-      "type": "article"
+      "type": "article",
+      "updatedAt": "2026-06-10T22:32:33.685Z"
     },
     {
       "id": "mp14l33q794",
@@ -621,5 +623,5 @@
     "財經 & 股票投資",
     "閱讀"
   ],
-  "lastSync": "2026-06-10T22:30:22.185Z"
+  "lastSync": "2026-06-10T22:32:36.588Z"
 }
