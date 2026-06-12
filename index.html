@@ -3,10 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Firefly">
 <meta name="theme-color" content="#0F172A">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <title>Firefly · Clippings</title>
 <style>
 :root {
@@ -14,6 +18,8 @@
   --text:#F1F5F9; --text2:#94A3B8; --text3:#4E6280;
   --accent:#F59E0B; --accent-dim:rgba(245,158,11,.14);
   --danger:#EF4444; --success:#10B981;
+  --purple:#A78BFA; --purple-dim:rgba(139,92,246,.12); --purple-bd:rgba(139,92,246,.3);
+  --code-text:#94A3B8;
   --r:12px; --r-sm:8px;
   --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
   --nav-h:62px; --hdr-h:62px;
@@ -307,7 +313,7 @@ body{font-family:-apple-system,'PingFang TC','Noto Sans TC','Helvetica Neue',san
 
 /* ── Worker code modal ── */
 .code-block{background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);
-  padding:12px;font-size:11.5px;line-height:1.6;color:#94A3B8;
+  padding:12px;font-size:11.5px;line-height:1.6;color:var(--code-text);
   white-space:pre;overflow-x:auto;font-family:'Menlo','Monaco','Courier New',monospace;margin-bottom:12px}
 .step-item{display:flex;gap:10px;margin-bottom:12px;align-items:flex-start}
 .step-n{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#000;
@@ -338,7 +344,7 @@ body{font-family:-apple-system,'PingFang TC','Noto Sans TC','Helvetica Neue',san
   color:var(--text);font-size:13px;font-weight:600;cursor:pointer;
   font-family:inherit;text-align:center;transition:all .15s}
 .note-btn.primary{background:var(--accent);color:#000;border-color:var(--accent)}
-.note-btn.gh{background:rgba(139,92,246,.12);color:#A78BFA;border-color:rgba(139,92,246,.3)}
+.note-btn.gh{background:var(--purple-dim);color:var(--purple);border-color:var(--purple-bd)}
 
 /* ── Toast ── */
 #toast{position:fixed;bottom:calc(var(--safe-b) + var(--nav-h) + 14px);left:50%;
@@ -388,6 +394,8 @@ body{font-family:-apple-system,'PingFang TC','Noto Sans TC','Helvetica Neue',san
     --text:#0F172A;--text2:#475569;--text3:#94A3B8;
     --accent:#D97706;--accent-dim:rgba(217,119,6,.12);
     --danger:#DC2626;--success:#059669;
+    --purple:#7C3AED;--purple-dim:rgba(124,58,237,.08);--purple-bd:rgba(124,58,237,.35);
+    --code-text:#334155;
   }
   :root:not([data-theme="dark"]) #header{background:rgba(248,250,252,.96)}
   :root:not([data-theme="dark"]) #bottom-nav{background:rgba(255,255,255,.98)}
@@ -400,6 +408,8 @@ html[data-theme="light"] {
   --text:#0F172A;--text2:#475569;--text3:#94A3B8;
   --accent:#D97706;--accent-dim:rgba(217,119,6,.12);
   --danger:#DC2626;--success:#059669;
+  --purple:#7C3AED;--purple-dim:rgba(124,58,237,.08);--purple-bd:rgba(124,58,237,.35);
+  --code-text:#334155;
 }
 html[data-theme="light"] #header{background:rgba(248,250,252,.96)}
 html[data-theme="light"] #bottom-nav{background:rgba(255,255,255,.98)}
@@ -424,8 +434,8 @@ html[data-theme="light"] .nav-plus{box-shadow:0 4px 20px rgba(217,119,6,.4)}
     </div>
     <button id="theme-btn" class="hdr-icon-btn" onclick="cycleTheme()" title="切換模式">🌗</button>
     <button onclick="openNotes()" style="flex-shrink:0;width:36px;height:36px;border-radius:10px;
-      background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.3);
-      color:#A78BFA;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer"
+      background:var(--purple-dim);border:1px solid var(--purple-bd);
+      color:var(--purple);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer"
       title="AI 截圖筆記">📷</button>
     <div class="sync-dot" id="sync-dot-hdr" title="自動同步狀態"></div>
     <div class="cnt-badge" id="cnt-badge">0</div>
@@ -637,7 +647,7 @@ html[data-theme="light"] .nav-plus{box-shadow:0 4px 20px rgba(217,119,6,.4)}
         </div>
         <div style="margin-top:7px;display:flex;gap:7px;align-items:center">
           <button class="fetch-btn" id="ai-btn" onclick="manualAiTag()"
-            style="border-color:rgba(139,92,246,.5);color:#A78BFA;background:rgba(139,92,246,.08);flex:1;justify-content:center">
+            style="border-color:var(--purple-bd);color:var(--purple);background:var(--purple-dim);flex:1;justify-content:center">
             🤖 AI 自動標籤
           </button>
           <div id="ai-status" style="font-size:11px;color:var(--text3);flex-shrink:0"></div>
@@ -656,21 +666,6 @@ html[data-theme="light"] .nav-plus{box-shadow:0 4px 20px rgba(217,119,6,.4)}
       </div>
       <div class="fg"><label class="fl">標題 *</label><input type="text" class="fi" id="f-title" placeholder="內容標題"></div>
       <div class="fg"><label class="fl">描述 / 個人筆記</label><textarea class="fta" id="f-desc" placeholder="摘要、備注、為什麼保存…"></textarea></div>
-      <div class="fg">
-        <label class="fl">來源平台</label>
-        <select class="fse" id="f-src">
-          <option value="other">其他 / 一般網站</option>
-          <option value="youtube">YouTube</option>
-          <option value="instagram">Instagram</option>
-          <option value="facebook">Facebook</option>
-          <option value="threads">Threads</option>
-          <option value="xiaohongshu">小紅書</option>
-          <option value="douyin">抖音 / TikTok</option>
-          <option value="twitter">X (Twitter)</option>
-          <option value="weibo">微博</option>
-          <option value="telegram">Telegram</option>
-        </select>
-      </div>
       <div class="fg"><label class="fl">分類</label><select class="fse" id="f-cat"><option value="">— 未分類 —</option></select></div>
       <div class="fg">
         <label class="fl">標籤（Enter 或逗號確認）</label>
@@ -806,7 +801,7 @@ html[data-theme="light"] .nav-plus{box-shadow:0 4px 20px rgba(217,119,6,.4)}
 
       <!-- Output -->
       <div style="margin-top:14px">
-        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px" id="notes-out-label" style="display:none"></div>
+        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px" id="notes-out-label"></div>
         <pre class="note-output" id="notes-output"></pre>
         <div class="note-acts" id="notes-acts" style="display:none">
           <button class="note-btn" onclick="copyNote()">📋 複製</button>
@@ -870,7 +865,11 @@ let S = {
 //  Persist / Load
 // ════════════════════════════════════════════════════════════
 function persist() {
-  localStorage.setItem(SK, JSON.stringify({ bookmarks: S.bookmarks, categories: S.categories }));
+  try {
+    localStorage.setItem(SK, JSON.stringify({ bookmarks: S.bookmarks, categories: S.categories }));
+  } catch(e) {
+    toast('⚠️ 本地儲存失敗（空間不足或私密瀏覽模式），數據僅暫存記憶體');
+  }
   scheduleAutoSync();
 }
 function loadStore() {
@@ -941,7 +940,7 @@ function srcOf(url) {
   const u=(url||'').toLowerCase();
   const m=[['youtube.com','youtube'],['youtu.be','youtube'],
     ['instagram.com','instagram'],['facebook.com','facebook'],['fb.com','facebook'],
-    ['threads.net','threads'],['xiaohongshu.com','xiaohongshu'],['xhslink.com','xiaohongshu'],
+    ['threads.net','threads'],['threads.com','threads'],['xiaohongshu.com','xiaohongshu'],['xhslink.com','xiaohongshu'],
     ['douyin.com','douyin'],['iesdouyin.com','douyin'],['tiktok.com','douyin'],
     ['twitter.com','twitter'],['x.com','twitter'],
     ['weibo.com','weibo'],['t.me','telegram'],['telegram.me','telegram']];
@@ -1002,10 +1001,10 @@ function renderAll() {
 
 function renderFilters() {
   const cats=[...new Set(S.bookmarks.map(b=>b.category).filter(Boolean))];
-  let h=`<div class="chip ${!S.fCat&&!S.fTag?'on':''}" onclick="setFilter('','')">全部 <span class="cn">${S.bookmarks.length}</span></div>`;
+  let h=`<div class="chip ${!S.fCat&&!S.fTag?'on':''}" data-cat-filter="">全部 <span class="cn">${S.bookmarks.length}</span></div>`;
   cats.forEach(c=>{
     const n=S.bookmarks.filter(b=>b.category===c).length;
-    h+=`<div class="chip ${S.fCat===c?'on':''}" onclick="setFilter('${esc(c)}','')">${esc(c)} <span class="cn">${n}</span></div>`;
+    h+=`<div class="chip ${S.fCat===c?'on':''}" data-cat-filter="${esc(c)}">${esc(c)} <span class="cn">${n}</span></div>`;
   });
   document.getElementById('filter-bar').innerHTML=h;
   // popular tags row (top 8)
@@ -1013,7 +1012,7 @@ function renderFilters() {
   S.bookmarks.forEach(b=>(b.tags||[]).forEach(t=>{freq[t]=(freq[t]||0)+1;}));
   const topTags=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([t])=>t);
   const tb=document.getElementById('filter-tags-bar');
-  if(tb) tb.innerHTML=topTags.map(t=>`<div class="tag-chip ${S.fTag===t?'on':''}" onclick="setFilter('','${esc(t)}')">#${esc(t)}</div>`).join('');
+  if(tb) tb.innerHTML=topTags.map(t=>`<div class="tag-chip ${S.fTag===t?'on':''}" data-tag="${esc(t)}">#${esc(t)}</div>`).join('');
   document.getElementById('cnt-badge').textContent=filtered().length;
 }
 
@@ -1059,9 +1058,18 @@ function cardHTML(b) {
 }
 
 // Central click delegation for cards
-document.getElementById('card-grid') && void 0; // init check
-
 document.addEventListener('click', e => {
+  // Tag pill remove (×) in add form
+  const rmTag = e.target.closest('[data-rm-tag]');
+  if(rmTag) { removeTag(rmTag.dataset.rmTag); return; }
+  // Tag suggestion chip in add form
+  const addT = e.target.closest('[data-add-tag]');
+  if(addT) { addTag(addT.dataset.addTag); return; }
+  // Category rename / delete in categories view
+  const catRen = e.target.closest('[data-cat-rename]');
+  if(catRen) { e.stopPropagation(); openCatRename(catRen.dataset.catRename); return; }
+  const catDel = e.target.closest('[data-cat-del]');
+  if(catDel) { e.stopPropagation(); delCat(catDel.dataset.catDel); return; }
   // Card menu button (⋮)
   const menuBtn = e.target.closest('[data-menu]');
   if(menuBtn) {
@@ -1108,8 +1116,6 @@ function openAct(id) {
   const b = S.bookmarks.find(x=>x.id===id);
   if(!b) return;
   document.getElementById('act-ttl').textContent = b.title || b.url;
-  // Update SR button text
-  document.getElementById('act-sr').querySelector('div+*') || void 0;
   const srText = document.getElementById('act-sr');
   srText.childNodes[1] && (srText.childNodes[1].textContent = b.sr ? '更新回顧排程' : '加入回顧佇列');
   document.getElementById('act-ov').classList.add('open');
@@ -1124,8 +1130,9 @@ document.getElementById('act-open').onclick = () => {
 document.getElementById('act-edit').onclick = () => { closeAct(); openEdit(S.actId); };
 document.getElementById('act-sr').onclick = () => { srAddToQueue(S.actId); closeAct(); };
 document.getElementById('act-del').onclick = () => {
+  // confirm() 在 iOS PWA 模式靜默失敗；直接刪除，toast 有 5 秒復原按鈕
   closeAct();
-  setTimeout(()=>{ if(confirm('確定刪除此書籤？')) delBm(S.actId); }, 200);
+  setTimeout(()=>delBm(S.actId), 200);
 };
 
 // ════════════════════════════════════════════════════════════
@@ -1196,7 +1203,7 @@ function renderTagPills() {
   S.editTags.forEach(t=>{
     const d=document.createElement('div');
     d.className='tpill';
-    d.innerHTML=`#${esc(t)} <button class="tpill-x" onclick="removeTag('${esc(t)}')">×</button>`;
+    d.innerHTML=`#${esc(t)} <button class="tpill-x" data-rm-tag="${esc(t)}">×</button>`;
     box.insertBefore(d,ti);
   });
 }
@@ -1210,7 +1217,7 @@ function tagSuggest(v) {
   if(!q){sug.innerHTML='';return;}
   const all=[...new Set(S.bookmarks.flatMap(b=>b.tags||[]))];
   const m=all.filter(t=>t.toLowerCase().includes(q)&&!S.editTags.includes(t)).slice(0,6);
-  sug.innerHTML=m.map(t=>`<div class="sug-chip" onclick="addTag('${esc(t)}')">#${esc(t)}</div>`).join('');
+  sug.innerHTML=m.map(t=>`<div class="sug-chip" data-add-tag="${esc(t)}">#${esc(t)}</div>`).join('');
 }
 function addTag(t) {
   if(!t||S.editTags.includes(t)) return;
@@ -1268,7 +1275,7 @@ async function fetchMeta() {
         if(wRes.ok){
           const wd=await wRes.json();
           if(wd.title){
-            title=wd.title; desc=wd.description||''; img=wd.image||'';
+            title=dehtml(wd.title); desc=dehtml(wd.description||''); img=wd.image||'';
             if(wd.type&&TICO[wd.type]){S.curType=wd.type;document.querySelectorAll('.type-btn').forEach(b=>b.classList.toggle('on',b.dataset.t===wd.type));}
             fetched=true;
           }
@@ -1277,15 +1284,15 @@ async function fetchMeta() {
     }
 
     // 1. microlink.io — 專為社群媒體設計，支援小紅書/Threads/Facebook 等
-    try{
+    if(!fetched) try{
       const ml=await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}&meta=true`,
         {signal:AbortSignal.timeout(8000)});
       if(ml.ok){
         const mj=await ml.json();
         if(mj.status==='success'&&mj.data){
           const d=mj.data;
-          if(d.title) title=d.title.trim().slice(0,200);
-          if(d.description) desc=d.description.trim().slice(0,500);
+          if(d.title) title=dehtml(d.title.trim()).slice(0,200);
+          if(d.description) desc=dehtml(d.description.trim()).slice(0,500);
           if(d.image?.url) img=d.image.url;
           if(d.logo?.url&&!img) img=d.logo.url;
           if(title) fetched=true;
@@ -1307,11 +1314,13 @@ async function fetchMeta() {
           const h=p.type==='allorigins'?(JSON.parse(raw).contents||''):raw;
           if(!h||h.length<100) continue;
           const og=name=>{
-            const m=h.match(new RegExp(`<meta[^>]+(?:property|name)=["']${name}["'][^>]*content=["']([^"'<>]{1,300})["']`,'i'))
-                   ||h.match(new RegExp(`<meta[^>]+content=["']([^"'<>]{1,300})["'][^>]*(?:property|name)=["']${name}["']`,'i'));
+            const m=h.match(new RegExp(`<meta[^>]+(?:property|name)=["']${name}["'][^>]*content="([^"<>]{1,300})"`,'i'))
+                   ||h.match(new RegExp(`<meta[^>]+(?:property|name)=["']${name}["'][^>]*content='([^'<>]{1,300})'`,'i'))
+                   ||h.match(new RegExp(`<meta[^>]+content="([^"<>]{1,300})"[^>]*(?:property|name)=["']${name}["']`,'i'))
+                   ||h.match(new RegExp(`<meta[^>]+content='([^'<>]{1,300})'[^>]*(?:property|name)=["']${name}["']`,'i'));
             return m?dehtml(m[1].trim()):'';
           };
-          const t=og('og:title')||og('twitter:title')||(h.match(/<title[^>]*>([^<]{1,200})<\/title>/i)||[])[1]||'';
+          const t=og('og:title')||og('twitter:title')||dehtml((h.match(/<title[^>]*>([^<]{1,200})<\/title>/i)||[])[1]||'');
           const de=og('og:description')||og('twitter:description')||og('description')||'';
           const im=og('og:image')||og('twitter:image')||'';
           if(t){title=t.trim().slice(0,200);if(!desc)desc=de.trim().slice(0,500);if(!img)img=im;fetched=true;break;}
@@ -1328,8 +1337,9 @@ async function fetchMeta() {
   }
 
   const gotTitle=!!document.getElementById('f-title').value;
-  if(gotTitle) toast('✅ 已獲取資訊，正在 AI 分析…');
-  else if(ytId) toast('✅ YouTube 縮圖已就緒，正在 AI 分析…');
+  const hasAI=!!(S.groqKey||S.geminiKey);
+  if(gotTitle) toast(hasAI?'✅ 已獲取資訊，正在 AI 分析…':'✅ 已獲取資訊');
+  else if(ytId) toast(hasAI?'✅ YouTube 縮圖已就緒，正在 AI 分析…':'✅ YouTube 縮圖已就緒');
   btn.innerHTML=`${FETCH_ICON} 自動獲取`; btn.disabled=false;
 
   // ── Auto-trigger AI tagging if any key is set
@@ -1395,6 +1405,7 @@ async function manualAiTag() {
   if(!title&&!url){ toast('請先填寫標題或 URL'); return; }
   await aiTag(title||url, desc, url);
 }
+let _dupOkUrl='';
 function saveBm() {
   const url=document.getElementById('f-url').value.trim();
   const title=document.getElementById('f-title').value.trim();
@@ -1402,11 +1413,18 @@ function saveBm() {
   const tiVal=document.getElementById('ti').value.trim().replace(/,/g,'');
   if(tiVal) addTag(tiVal);
   if(!url){document.getElementById('f-url').focus();toast('⚠️ 請填寫 URL');return;}
+  if(!/^https?:\/\//i.test(url)){document.getElementById('f-url').focus();toast('⚠️ URL 必須以 http(s):// 開頭');return;}
   if(!title){document.getElementById('f-title').focus();toast('⚠️ 請填寫標題');return;}
   // Duplicate URL check (only for new bookmarks)
+  // confirm() 在 iOS PWA 模式靜默失敗 → 改為「再按一次確認」模式
   if(!eid){
     const dup=S.bookmarks.find(b=>b.url===url);
-    if(dup&&!confirm(`此連結已存在：\n「${dup.title}」\n\n是否仍要保存？`)) return;
+    if(dup&&_dupOkUrl!==url){
+      _dupOkUrl=url;
+      toast(`⚠️ 此連結已存在：「${dup.title.slice(0,30)}」\n再按一次儲存可重複保存`,4000);
+      return;
+    }
+    _dupOkUrl='';
   }
   const data={
     url,title,
@@ -1481,7 +1499,7 @@ function openDet(id) {
     </div>`;
   document.getElementById('det-edit-btn').onclick=()=>openEdit(id);
   document.getElementById('det-sr-btn').onclick=()=>{ srAddToQueue(id); closeDet(); };
-  document.getElementById('det-del-btn').onclick=()=>{ if(confirm('確定刪除此書籤？')) delBm(id); };
+  document.getElementById('det-del-btn').onclick=()=>delBm(id); // toast 有 5 秒復原按鈕
   document.getElementById('det-ov').classList.add('open');
 }
 function closeDet(){ document.getElementById('det-ov').classList.remove('open'); }
@@ -1503,9 +1521,9 @@ function renderCatList() {
         <div class="cat-name">${esc(c)}</div>
         <div class="cat-cnt">${n} 個書籤</div>
       </div>
-      <div class="cat-btns" onclick="event.stopPropagation()">
-        <button class="cat-btn" onclick="openCatRename('${esc(c)}')" title="重命名">✏️</button>
-        <button class="cat-btn del" onclick="delCat('${esc(c)}')" title="刪除">🗑️</button>
+      <div class="cat-btns">
+        <button class="cat-btn" data-cat-rename="${esc(c)}" title="重命名">✏️</button>
+        <button class="cat-btn del" data-cat-del="${esc(c)}" title="刪除">🗑️</button>
       </div>
     </div>`;
   }).join('');
@@ -1537,9 +1555,18 @@ function addCategory() {
 }
 document.getElementById('new-cat-inp').addEventListener('keydown',e=>{if(e.key==='Enter')addCategory();});
 
+let _pendDelCat='', _pendDelCatT=null;
 function delCat(name) {
+  // confirm() 在 iOS PWA 模式靜默失敗 → 改為「再按一次確認」模式
   const n=S.bookmarks.filter(b=>b.category===name).length;
-  if(!confirm(`刪除「${name}」？${n?`\n${n} 個書籤將改為「未分類」`:''}`)) return;
+  if(_pendDelCat!==name){
+    _pendDelCat=name;
+    clearTimeout(_pendDelCatT);
+    _pendDelCatT=setTimeout(()=>{_pendDelCat='';},4000);
+    toast(`⚠️ 再按一次 🗑️ 確認刪除「${name}」${n?`（${n} 個書籤將改為未分類）`:''}`,4000);
+    return;
+  }
+  _pendDelCat='';
   S.categories=S.categories.filter(c=>c!==name);
   S.bookmarks.forEach(b=>{if(b.category===name)b.category='';});
   persist(); renderAll(); renderCatList(); renderTagCloud(); toast('已刪除分類');
@@ -1570,8 +1597,14 @@ document.getElementById('cat-rename-inp').addEventListener('keydown',e=>{if(e.ke
 function srAddToQueue(id) {
   const b=S.bookmarks.find(x=>x.id===id);
   if(!b) return;
-  if(!b.sr) b.sr={ interval:1, ease:2.5, reps:0, nextReview:todayStr() };
-  persist(); renderAll(); toast('📅 已加入回顧佇列');
+  if(!b.sr){
+    b.sr={ interval:1, ease:2.5, reps:0, nextReview:todayStr() };
+    toast('📅 已加入回顧佇列');
+  } else {
+    b.sr.nextReview=todayStr();
+    toast('📅 已重設：今天回顧');
+  }
+  persist(); renderAll();
 }
 
 function srRate(id, quality) {
@@ -1593,7 +1626,6 @@ function srRate(id, quality) {
   sr.nextReview=next.toISOString().slice(0,10);
   markReviewed(id);
   persist();
-  S.revIdx++;
   renderReview();
   renderRevDot();
   const msg=quality===2?`😊 記住了！${sr.interval}天後再見`
@@ -1626,8 +1658,17 @@ function renderRevDot() {
 
 function renderReview() {
   const due=dueItems();
+  const done=getTodayReviewed().size;
   const el=document.getElementById('rev-content');
   if(!due.length){
+    if(done>0){
+      el.innerHTML=`<div class="rev-hdr"><div><div class="rev-title">📅 今日回顧</div><div class="rev-sub">今天的 ${done} 項已完成 🎉</div></div></div>
+      <div class="rev-empty">
+        <div class="empty-ico">🎉</div>
+        <div class="empty-title" style="color:var(--success)">今日回顧完成！</div>
+        <div class="empty-sub">明天再繼續，保持學習動力</div>
+      </div>`; return;
+    }
     el.innerHTML=`<div class="rev-hdr"><div><div class="rev-title">📅 回顧</div><div class="rev-sub">今日無待回顧項目</div></div></div>
     <div class="rev-empty">
       <div class="empty-ico">✨</div>
@@ -1636,21 +1677,13 @@ function renderReview() {
     </div>`;
     return;
   }
-  const idx=Math.min(S.revIdx, due.length-1);
-  if(S.revIdx>=due.length){
-    el.innerHTML=`<div class="rev-hdr"><div><div class="rev-title">📅 今日回顧</div><div class="rev-sub">今天的 ${due.length} 項已完成 🎉</div></div></div>
-    <div class="rev-empty">
-      <div class="empty-ico">🎉</div>
-      <div class="empty-title" style="color:var(--success)">今日回顧完成！</div>
-      <div class="empty-sub">明天再繼續，保持學習動力</div>
-    </div>`; return;
-  }
-  const b=due[idx];
+  const total=due.length+done;
+  const b=due[0];
   const s=SRC[b.source]||SRC.other;
-  const pct=Math.round((idx/due.length)*100);
+  const pct=Math.round((done/total)*100);
   el.innerHTML=`
     <div class="rev-hdr">
-      <div><div class="rev-title">📅 今日回顧</div><div class="rev-sub">${idx+1} / ${due.length} 項</div></div>
+      <div><div class="rev-title">📅 今日回顧</div><div class="rev-sub">${done+1} / ${total} 項</div></div>
     </div>
     <div class="rev-progress"><div class="rev-progress-bar" style="width:${pct}%"></div></div>
     <div class="rev-card">
@@ -1672,7 +1705,7 @@ function renderReview() {
         </div>
       </div>
     </div>
-    <div class="rev-next">已複習 ${idx}，待複習 ${due.length-idx} 項 · 間隔 ${b.sr.interval||1} 天</div>`;
+    <div class="rev-next">已複習 ${done}，待複習 ${due.length} 項 · 間隔 ${b.sr.interval||1} 天</div>`;
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1810,8 +1843,19 @@ async function githubLoad() {
       toast('✅ 數據已是最新'); return;
     }
     const remoteUrls=new Set(remote.map(b=>b.url));
+    const localByUrl=new Map(S.bookmarks.map(b=>[b.url,b]));
+    // 同一 URL 兩邊都有時：保留較新（updatedAt/createdAt）的版本，
+    // 並保留本地的回顧進度（sr）— 避免 Telegram Bot 的空白版本覆蓋本地編輯
+    const merged=remote.map(rb=>{
+      const lb=localByUrl.get(rb.url);
+      if(!lb) return {...rb, id: rb.id||uid()};
+      const rTime=new Date(rb.updatedAt||rb.createdAt||0), lTime=new Date(lb.updatedAt||lb.createdAt||0);
+      const win=lTime>=rTime?lb:{...rb, id: rb.id||lb.id};
+      if(lb.sr&&!win.sr) win.sr=lb.sr;
+      return win;
+    });
     const localOnly=S.bookmarks.filter(b=>!remoteUrls.has(b.url));
-    S.bookmarks=[...remote,...localOnly].sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+    S.bookmarks=[...merged,...localOnly].sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
     S.categories=[...new Set([...S.categories,...remoteCats])];
     persist(); renderAll();
     syncMsg(`✅ 合併完成：共 ${S.bookmarks.length} 筆 · ${new Date().toLocaleTimeString('zh-TW')}`);
@@ -1844,8 +1888,8 @@ function importData(ev) {
       const d=JSON.parse(e.target.result);
       if(!Array.isArray(d.bookmarks)){alert('無效格式');return;}
       const existing=new Set(S.bookmarks.map(b=>b.url));
-      const fresh=d.bookmarks.filter(b=>!existing.has(b.url));
-      if(!confirm(`合併匯入 ${fresh.length} 筆新書籤，確定？`)) return;
+      // confirm() 在 iOS PWA 模式會靜默失敗，不可用；用戶選了檔案即視為確認
+      const fresh=d.bookmarks.filter(b=>!existing.has(b.url)).map(b=>({...b, id: b.id||uid()}));
       S.bookmarks=[...S.bookmarks,...fresh];
       if(d.categories) S.categories=[...new Set([...S.categories,...d.categories])];
       persist(); renderAll(); toast(`✅ 已匯入 ${fresh.length} 筆`);
@@ -2031,17 +2075,35 @@ async function fetchUrlMeta(url) {
     });
     const h = await r.text();
     const og = p => {
-      const m = h.match(new RegExp(\`<meta[^>]+(?:property|name)=["']\${p}["'][^>]*content=["']([^"'<>]{1,500})["']\`, 'i'))
-               || h.match(new RegExp(\`<meta[^>]+content=["']([^"'<>]{1,500})["'][^>]*(?:property|name)=["']\${p}["']\`, 'i'));
-      return m ? m[1].trim() : '';
+      const m = h.match(new RegExp(\`<meta[^>]+(?:property|name)=["']\${p}["'][^>]*content="([^"<>]{1,500})"\`, 'i'))
+               || h.match(new RegExp(\`<meta[^>]+(?:property|name)=["']\${p}["'][^>]*content='([^'<>]{1,500})'\`, 'i'))
+               || h.match(new RegExp(\`<meta[^>]+content="([^"<>]{1,500})"[^>]*(?:property|name)=["']\${p}["']\`, 'i'))
+               || h.match(new RegExp(\`<meta[^>]+content='([^'<>]{1,500})'[^>]*(?:property|name)=["']\${p}["']\`, 'i'));
+      return m ? deEnt(m[1].trim()) : '';
     };
-    title = og('og:title') || og('twitter:title') || (h.match(/<title[^>]*>([^<]{1,200})<\\/title>/i)||[])[1] || '';
+    title = og('og:title') || og('twitter:title') || deEnt((h.match(/<title[^>]*>([^<]{1,200})<\\/title>/i)||[])[1] || '');
     desc  = og('og:description') || og('twitter:description') || og('description') || '';
     thumb = og('og:image') || og('twitter:image') || '';
     if (og('og:type').includes('video')) type = 'video';
+    // 小紅書：og:image 有時藏在頁面 JSON 中
+    if (!thumb && src === 'xiaohongshu') {
+      const xm = h.match(/"(?:imageList|images?)"\\s*:\\s*\\[\\s*\\{[^\\]]*?"url(?:Default)?"\\s*:\\s*"(https?:[^"]+)"/)
+              || h.match(/<img[^>]+src="(https?:\\/\\/sns-webpic[^"]+)"/i);
+      if (xm) thumb = xm[1].replace(/\\\\u002F/g, '/');
+    }
   } catch(e) {}
 
   return { title: (title||url).slice(0,200), description: desc.slice(0,500), image: thumb, type, source: src };
+}
+
+// HTML entity 解碼（Worker 無 DOM，用替換表 + 數字實體）
+function deEnt(s) {
+  if (!s) return s;
+  const map = { amp:'&', lt:'<', gt:'>', quot:'"', apos:"'", nbsp:' ', hellip:'…', mdash:'—', ndash:'–' };
+  return s
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\\d+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)))
+    .replace(/&([a-z]+);/gi, (m, n) => map[n.toLowerCase()] ?? m);
 }
 
 function corsHeaders() {
@@ -2095,7 +2157,7 @@ function copyWorker() {
 //  Keyboard
 // ════════════════════════════════════════════════════════════
 document.addEventListener('keydown', e => {
-  if(e.key==='Escape'){ closeAdd(); closeDet(); closeAct(); closeCatEd(); closeTg(); }
+  if(e.key==='Escape'){ closeAdd(); closeDet(); closeAct(); closeCatEd(); closeTg(); if(typeof closeNotes==='function') closeNotes(); }
 });
 
 // ════════════════════════════════════════════════════════════
@@ -2270,7 +2332,13 @@ function applyTheme(){
   else delete el.dataset.theme;
   const btn=document.getElementById('theme-btn');
   if(btn) btn.textContent=t==='dark'?'🌙':t==='light'?'☀️':'🌗';
+  // 同步更新瀏覽器 chrome / iOS 狀態列顏色
+  const isDark=t==='dark'||(t==='auto'&&window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const meta=document.querySelector('meta[name="theme-color"]');
+  if(meta) meta.content=isDark?'#0F172A':'#F8FAFC';
 }
+// auto 模式下跟隨系統即時切換
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(S.theme==='auto') applyTheme(); });
 function cycleTheme(){
   const order=['auto','light','dark'];
   S.theme=order[(order.indexOf(S.theme)+1)%order.length];
@@ -2301,8 +2369,18 @@ async function githubSilentSave(){
     const sha=getR.ok?(await getR.json()).sha||'':'';
     const body={message:`Firefly auto-sync ${new Date().toISOString().slice(0,10)}`,content};
     if(sha) body.sha=sha;
-    const r=await fetch(`https://api.github.com/repos/${g.user}/${g.repo}/contents/${g.path}`,
+    let r=await fetch(`https://api.github.com/repos/${g.user}/${g.repo}/contents/${g.path}`,
       {method:'PUT',headers:ghHeaders(g.token),body:JSON.stringify(body)});
+    if(r.status===409){
+      // sha 過期（另一裝置/Telegram Bot 剛寫入）→ 重新取 sha 再試一次
+      const re=await fetch(`https://api.github.com/repos/${g.user}/${g.repo}/contents/${g.path}`,
+        {headers:ghHeaders(g.token)});
+      if(re.ok){
+        body.sha=(await re.json()).sha||'';
+        r=await fetch(`https://api.github.com/repos/${g.user}/${g.repo}/contents/${g.path}`,
+          {method:'PUT',headers:ghHeaders(g.token),body:JSON.stringify(body)});
+      }
+    }
     if(dot){dot.className=r.ok?'sync-dot synced':'sync-dot err';
       setTimeout(()=>{if(dot)dot.className='sync-dot';},3000);}
     if(r.ok) document.getElementById('sync-msg')&&(document.getElementById('sync-msg').textContent='✅ 自動同步 '+new Date().toLocaleTimeString('zh-TW'));
@@ -2335,7 +2413,11 @@ function copyShortcutInstructions(){
 function checkUrlParams(){
   const p=new URLSearchParams(location.search);
   if(p.get('add')==='1'&&p.get('url')){
-    const sharedUrl=p.get('url');
+    // iOS 捷徑通常不會 URL-encode 分享連結，含 & 的網址（如 YouTube &t=）
+    // 會被 URLSearchParams 截斷 → 手動取 url= 之後的全部內容
+    const m=location.search.match(/[?&]url=(.+)$/);
+    let sharedUrl=m?m[1]:p.get('url');
+    try{ if(/%3A|%2F/i.test(sharedUrl)) sharedUrl=decodeURIComponent(sharedUrl); }catch(e){}
     const sharedTitle=p.get('title')||'';
     history.replaceState({},'',location.pathname);
     openAdd();
@@ -2357,6 +2439,7 @@ renderAll();
 loadGithubForm();
 renderRevDot();
 checkUrlParams();
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 setTimeout(()=>{
   const aiStatus=document.getElementById('ai-status');
   if(aiStatus) aiStatus.textContent=S.groqKey?'Groq ✓':S.geminiKey?'Gemini ✓':'';
