@@ -7,10 +7,15 @@
       "description": "",
       "thumbnail": "http://sns-webpic-qc.xhscdn.com/202606131529/c588a6e497adc16a86eb046e396db357/spectrum/1040g34o3217drbskmu105o03ti0084di90v3188!h5_1080jpg",
       "source": "xiaohongshu",
-      "tags": [],
-      "category": "",
+      "tags": [
+        "標籤1",
+        "標籤2",
+        "標籤3"
+      ],
+      "category": "其他",
       "createdAt": "2026-06-13T07:29:24.671Z",
-      "type": "article"
+      "type": "website",
+      "updatedAt": "2026-06-13T12:27:55.430Z"
     },
     {
       "id": "mq7u0ewhtx3",
@@ -640,5 +645,5 @@
     "財經 & 股票投資",
     "閱讀"
   ],
-  "lastSync": "2026-06-13T12:27:50.372Z"
+  "lastSync": "2026-06-13T12:27:57.931Z"
 }
