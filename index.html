@@ -2085,11 +2085,21 @@ async function fetchUrlMeta(url) {
     desc  = og('og:description') || og('twitter:description') || og('description') || '';
     thumb = og('og:image') || og('twitter:image') || '';
     if (og('og:type').includes('video')) type = 'video';
-    // 小紅書：og:image 有時藏在頁面 JSON 中
-    if (!thumb && src === 'xiaohongshu') {
-      const xm = h.match(/"(?:imageList|images?)"\\s*:\\s*\\[\\s*\\{[^\\]]*?"url(?:Default)?"\\s*:\\s*"(https?:[^"]+)"/)
-              || h.match(/<img[^>]+src="(https?:\\/\\/sns-webpic[^"]+)"/i);
-      if (xm) thumb = xm[1].replace(/\\\\u002F/g, '/');
+    // 小紅書：標題和圖片藏在頁面 JSON 裡
+    if (src === 'xiaohongshu') {
+      // 標題：先嘗試 JSON noteDetail/title，再從 <title> 去掉「- 小红书」後綴
+      if (!title || title === '小红书' || title === '小紅書') {
+        const jt = h.match(/"title"\\s*:\\s*"([^"]{2,200})"/)
+                || h.match(/<title[^>]*>([^<]{2,100})(?:\\s*[-|]\\s*小红书[^<]*)?<\\/title>/i);
+        if (jt) title = deEnt(jt[1].trim().replace(/\\s*[-|–—]\\s*小红书.*$/i, '').trim());
+      }
+      // 圖片：嘗試幾種 JSON 模式
+      if (!thumb) {
+        const xm = h.match(/"(?:imageList|images?)"\\s*:\\s*\\[\\s*\\{[^\\]]*?"url(?:Default)?"\\s*:\\s*"(https?:[^"]+)"/)
+                || h.match(/"coverUrl"\\s*:\\s*"(https?:[^"]+)"/)
+                || h.match(/<img[^>]+src="(https?:\\/\\/sns-webpic[^"]+)"/i);
+        if (xm) thumb = xm[1].replace(/\\\\u002F/g, '/');
+      }
     }
   } catch(e) {}
 
