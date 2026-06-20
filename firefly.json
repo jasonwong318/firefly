@@ -3,15 +3,18 @@
     {
       "id": "mqls0ucorqg",
       "url": "https://www.youtube.com/live/6eBSHbLKuN0?is=hXwLWHL10fBjBpSL",
-      "title": "YouTube",
-      "description": "與好友、家人及全世界分享你的影片",
+      "title": "Mastering Claude Code in 30 minutes",
+      "description": "Learn advanced features, shortcuts, and workflows to get the most from Claude Code",
       "thumbnail": "",
       "source": "youtube",
-      "tags": [],
-      "category": "影片",
+      "tags": [
+        "#claudecode",
+        "#anthropic"
+      ],
+      "category": "科技教學 & AI",
       "createdAt": "2026-06-20T03:06:49.128Z",
       "type": "video",
-      "updatedAt": "2026-06-20T04:40:22.982Z"
+      "updatedAt": "2026-06-20T04:44:17.485Z"
     },
     {
       "id": "mqj24hwi24t",
@@ -721,5 +724,5 @@
     "影片",
     "圖片欣賞"
   ],
-  "lastSync": "2026-06-20T04:40:25.489Z"
+  "lastSync": "2026-06-20T04:44:19.992Z"
 }
