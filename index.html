@@ -849,7 +849,6 @@ let S = {
   curType: 'article',
   editTags: [],
   actId: null,
-  revIdx: 0,
   github: { user:'', repo:'', path:'firefly.json', token:'' },
   obsidian: { repo:'', folder:'raw', token:'' },
   geminiKey: '',
@@ -925,10 +924,14 @@ function fmtDate(iso) {
   if(!iso) return '';
   return new Date(iso).toLocaleDateString('zh-TW',{month:'short',day:'numeric'});
 }
-function todayStr() { return new Date().toISOString().slice(0,10); }
+// 用本地日期（唔用 UTC）— 香港/台北時區先至喺午夜換日
+function todayStr() { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function localDateStr(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
 let _toastT;
 function toast(msg,ms=2400) {
+  // 新 toast 會蓋走刪除 undo 按鈕 → 一併清走 undo 狀態，避免留低過期引用
+  if(typeof _deletedBm!=='undefined'&&_deletedBm) _deletedBm=null;
   const el=document.getElementById('toast');
   el.textContent=msg; el.classList.add('show');
   clearTimeout(_toastT); _toastT=setTimeout(()=>el.classList.remove('show'),ms);
@@ -962,16 +965,26 @@ function switchView(v) {
     if(nb) nb.classList.toggle('on', id===v);
   });
   if(v==='cats')     { renderCatList(); renderTagCloud(); }
-  if(v==='review')   { S.revIdx=0; renderReview(); }
+  if(v==='review')   { renderReview(); }
   if(v==='settings') { updateStats(); loadGithubForm(); }
 }
 
 // ════════════════════════════════════════════════════════════
 //  Filter / Search
 // ════════════════════════════════════════════════════════════
-function onSearch(q) { S.search=q; renderFilters(); renderCards(); }
+// 搜索 debounce 150ms — 避免 1000+ 書籤時每個按鍵全頁重建
+// 搜索期間唔重建 filter chips（會重置橫向捲動位置）
+let _searchT=null;
+function onSearch(q) {
+  S.search=q;
+  clearTimeout(_searchT);
+  _searchT=setTimeout(()=>{ renderCards(); },150);
+}
 
 function setFilter(cat, tag) {
+  // 再點一次已選中嘅 chip = 取消篩選
+  if(cat&&S.fCat===cat) cat='';
+  if(tag&&S.fTag===tag) tag='';
   S.fCat=cat; S.fTag=tag;
   renderFilters(); renderCards();
   if(curView!=='feed') switchView('feed');
@@ -987,7 +1000,8 @@ function filtered() {
   }
   if(S.fCat) r=r.filter(b=>b.category===S.fCat);
   if(S.fTag) r=r.filter(b=>(b.tags||[]).includes(S.fTag));
-  return r.sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+  // ISO 字串直接字典序排序（同日期序一致），慳每次比較兩個 new Date()
+  return r.sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1029,13 +1043,21 @@ function renderCards() {
   document.getElementById('card-grid').innerHTML=list.map(cardHTML).join('');
 }
 
+// 防盜鏈 CDN（小紅書/IG/FB/抖音）經 Worker /img 代理載入 — 解決縮圖唔顯示同過期問題
+const HOTLINK_CDN=/sns-webpic|xhscdn|xiaohongshu|fbcdn\.net|cdninstagram|instagram\.com|douyinpic|tiktokcdn|byteimg|pstatp/i;
+function thumbSrc(t){
+  if(!t) return '';
+  if(S.workerUrl&&HOTLINK_CDN.test(t)) return `${S.workerUrl}/img?url=${encodeURIComponent(t)}`;
+  return t;
+}
+
 function cardHTML(b) {
   const s=SRC[b.source]||SRC.other;
   const tags=(b.tags||[]).slice(0,2).map(t=>`<span class="tag-pill">#${esc(t)}</span>`).join('');
   const date=fmtDate(b.createdAt);
   const srBadge=b.sr?`<span class="sr-badge">📅 回顧中</span>`:'';
   const th=b.thumbnail
-    ?`<img class="card-thumb" src="${esc(b.thumbnail)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.outerHTML='<div class=card-thumb-ph>${s.icon}</div>'">`
+    ?`<img class="card-thumb" src="${esc(thumbSrc(b.thumbnail))}" loading="lazy" referrerpolicy="no-referrer" onerror="this.outerHTML='<div class=card-thumb-ph>${s.icon}</div>'">`
     :`<div class="card-thumb-ph">${s.icon}</div>`;
   // Use data attributes to avoid any HTML quoting issues
   return `<div class="card card-item" data-id="${b.id}" role="button" tabindex="0">
@@ -1139,6 +1161,7 @@ document.getElementById('act-del').onclick = () => {
 //  Add / Edit Sheet
 // ════════════════════════════════════════════════════════════
 function openAdd() {
+  _dupOkUrl='';
   S.editTags=[]; S.curType='article';
   document.getElementById('f-id').value='';
   ['f-url','f-title','f-desc','f-thumb'].forEach(id=>document.getElementById(id).value='');
@@ -1181,7 +1204,7 @@ function openEdit(id) {
   document.getElementById('add-ov').classList.add('open');
 }
 
-function closeAdd() { document.getElementById('add-ov').classList.remove('open'); }
+function closeAdd() { _dupOkUrl=''; document.getElementById('add-ov').classList.remove('open'); }
 
 function toggleAdv() {
   const body=document.getElementById('adv-body');
@@ -1247,8 +1270,9 @@ async function fetchMeta() {
   // ── YouTube: oEmbed API (官方免費接口，無需 key，可取標題+縮圖)
   const ytId = ytVideoId(url);
   if(ytId) {
-    if(!document.getElementById('f-thumb').value)
-      document.getElementById('f-thumb').value=`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+    const thumbEl=document.getElementById('f-thumb');
+    const prefill=`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+    if(!thumbEl.value) thumbEl.value=prefill;
     document.querySelectorAll('.type-btn').forEach(b=>b.classList.toggle('on',b.dataset.t==='video'));
     S.curType='video';
     try {
@@ -1256,7 +1280,8 @@ async function fetchMeta() {
       if(oe.ok){
         const od=await oe.json();
         if(od.title&&!document.getElementById('f-title').value) document.getElementById('f-title').value=od.title;
-        if(od.thumbnail_url&&!document.getElementById('f-thumb').value) document.getElementById('f-thumb').value=od.thumbnail_url;
+        // oEmbed 縮圖畫質較高 — 可覆蓋我哋預填嘅 hqdefault
+        if(od.thumbnail_url&&(!thumbEl.value||thumbEl.value===prefill)) thumbEl.value=od.thumbnail_url;
         if(od.author_name&&!document.getElementById('f-desc').value) document.getElementById('f-desc').value=`${od.author_name} 的 YouTube 影片`;
       }
     } catch(e){}
@@ -1333,7 +1358,10 @@ async function fetchMeta() {
     if(title&&!document.getElementById('f-title').value) document.getElementById('f-title').value=title;
     if(desc&&!document.getElementById('f-desc').value) document.getElementById('f-desc').value=desc;
     if(img&&!document.getElementById('f-thumb').value) document.getElementById('f-thumb').value=img;
-    if(!fetched) toast('⚠️ 自動獲取失敗（平台有防護），請手動填寫標題');
+    // 完全抓唔到封面圖 → 用 WordPress mshots 免費截圖服務做後備（任何網站都保證有圖）
+    if(!document.getElementById('f-thumb').value)
+      document.getElementById('f-thumb').value=`https://s0.wp.com/mshots/v1/${encodeURIComponent(url)}?w=600`;
+    if(!fetched) toast('⚠️ 標題獲取失敗（平台有防護），已用網頁截圖做封面，請手動填寫標題');
   }
 
   const gotTitle=!!document.getElementById('f-title').value;
@@ -1382,9 +1410,12 @@ async function aiTag(title, desc, url) {
     const parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());
     if(Array.isArray(parsed.tags)) parsed.tags.forEach(t=>addTag(t));
     if(parsed.category){
-      if(!S.categories.includes(parsed.category)) S.categories.push(parsed.category);
-      persist(); renderCatSelect();
-      document.getElementById('f-cat').value=parsed.category;
+      // 未儲存前唔寫入 S.categories（取消都留低鬼影分類）— 只加臨時選項，saveBm 先落實
+      const sel=document.getElementById('f-cat');
+      if(!S.categories.includes(parsed.category)&&![...sel.options].some(o=>o.value===parsed.category)){
+        const o=document.createElement('option'); o.value=o.textContent=parsed.category; sel.appendChild(o);
+      }
+      sel.value=parsed.category;
     }
     if(parsed.type&&TICO[parsed.type]){
       S.curType=parsed.type;
@@ -1421,7 +1452,7 @@ function saveBm() {
     const dup=S.bookmarks.find(b=>b.url===url);
     if(dup&&_dupOkUrl!==url){
       _dupOkUrl=url;
-      toast(`⚠️ 此連結已存在：「${dup.title.slice(0,30)}」\n再按一次儲存可重複保存`,4000);
+      toast(`⚠️ 此連結已存在：「${(dup.title||dup.url||'').slice(0,30)}」\n再按一次儲存可重複保存`,4000);
       return;
     }
     _dupOkUrl='';
@@ -1435,6 +1466,8 @@ function saveBm() {
     type:S.curType,
     thumbnail:document.getElementById('f-thumb').value.trim()
   };
+  // AI 建議嘅新分類喺呢度先正式落實
+  if(data.category&&!S.categories.includes(data.category)) S.categories.push(data.category);
   if(eid){
     const i=S.bookmarks.findIndex(b=>b.id===eid);
     if(i>=0) S.bookmarks[i]={...S.bookmarks[i],...data,updatedAt:new Date().toISOString()};
@@ -1474,7 +1507,7 @@ function openDet(id) {
   if(!b) return;
   const s=SRC[b.source]||SRC.other;
   document.getElementById('det-ttl').textContent=b.title||b.url;
-  const thumb=b.thumbnail?`<img class="det-thumb" src="${esc(b.thumbnail)}" onerror="this.style.display='none'" loading="lazy" referrerpolicy="no-referrer">`:'';
+  const thumb=b.thumbnail?`<img class="det-thumb" src="${esc(thumbSrc(b.thumbnail))}" onerror="this.style.display='none'" loading="lazy" referrerpolicy="no-referrer">`:'';
   const tags=(b.tags||[]).map(t=>`<div class="det-tag" data-det-tag="${esc(t)}">#${esc(t)}</div>`).join('');
   const date=b.createdAt?new Date(b.createdAt).toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'}):'';
   const srInfo=b.sr?`<span class="ibd">📅 下次 ${b.sr.nextReview||'今天'}</span>`:'';
@@ -1602,9 +1635,12 @@ function srAddToQueue(id) {
     toast('📅 已加入回顧佇列');
   } else {
     b.sr.nextReview=todayStr();
+    // 清走今日已回顧記錄，令項目即刻重新出現喺佇列
+    const s=getTodayReviewed(); s.delete(id);
+    try{ localStorage.setItem(RVK,JSON.stringify({date:todayStr(),ids:[...s]})); }catch(e){}
     toast('📅 已重設：今天回顧');
   }
-  persist(); renderAll();
+  persist(); renderAll(); renderRevDot();
 }
 
 function srRate(id, quality) {
@@ -1623,7 +1659,7 @@ function srRate(id, quality) {
   }
   const next=new Date();
   next.setDate(next.getDate()+sr.interval);
-  sr.nextReview=next.toISOString().slice(0,10);
+  sr.nextReview=localDateStr(next);
   markReviewed(id);
   persist();
   renderReview();
@@ -1642,7 +1678,7 @@ function getTodayReviewed(){
 }
 function markReviewed(id){
   const s=getTodayReviewed(); s.add(id);
-  localStorage.setItem(RVK,JSON.stringify({date:todayStr(),ids:[...s]}));
+  try{ localStorage.setItem(RVK,JSON.stringify({date:todayStr(),ids:[...s]})); }catch(e){}
 }
 function dueItems() {
   const today=todayStr();
@@ -1658,7 +1694,8 @@ function renderRevDot() {
 
 function renderReview() {
   const due=dueItems();
-  const done=getTodayReviewed().size;
+  const ids=new Set(S.bookmarks.map(b=>b.id));
+  const done=[...getTodayReviewed()].filter(id=>ids.has(id)).length;
   const el=document.getElementById('rev-content');
   if(!due.length){
     if(done>0){
@@ -1688,7 +1725,7 @@ function renderReview() {
     <div class="rev-progress"><div class="rev-progress-bar" style="width:${pct}%"></div></div>
     <div class="rev-card">
       ${b.thumbnail
-        ?`<img class="rev-card-img" src="${esc(b.thumbnail)}" onerror="this.outerHTML='<div class=rev-card-ph>${s.icon}</div>'" loading="lazy" referrerpolicy="no-referrer">`
+        ?`<img class="rev-card-img" src="${esc(thumbSrc(b.thumbnail))}" onerror="this.outerHTML='<div class=rev-card-ph>${s.icon}</div>'" loading="lazy" referrerpolicy="no-referrer">`
         :`<div class="rev-card-ph">${s.icon}</div>`}
       <div class="rev-card-body">
         <div class="rev-card-src">
@@ -1802,21 +1839,75 @@ function ghHeaders(token) {
 
 function syncMsg(t){ document.getElementById('sync-msg').textContent=t; }
 
+// ── 共用 GitHub Contents API 讀寫 ──
+async function ghGetFile(g) {
+  const r=await fetch(`https://api.github.com/repos/${g.user}/${g.repo}/contents/${g.path}`,
+    {headers:ghHeaders(g.token)});
+  if(r.status===404) return {sha:'',json:null};
+  if(!r.ok) throw new Error('讀取失敗（'+r.status+'）');
+  const d=await r.json();
+  let text='';
+  if(d.content){ text=decodeURIComponent(escape(atob(d.content.replace(/\n/g,'')))); }
+  else if(d.download_url){
+    // 檔案超過 1MB 時 Contents API 唔回傳 content，要經 download_url 攞
+    const dr=await fetch(d.download_url);
+    if(!dr.ok) throw new Error('下載失敗（'+dr.status+'）');
+    text=await dr.text();
+  }
+  return {sha:d.sha||'', json:text?JSON.parse(text):null};
+}
+async function ghPutFile(g, sha, message) {
+  const content=btoa(unescape(encodeURIComponent(JSON.stringify(
+    {bookmarks:S.bookmarks,categories:S.categories,lastSync:new Date().toISOString()},null,2))));
+  const body={message,content};
+  if(sha) body.sha=sha;
+  return fetch(`https://api.github.com/repos/${g.user}/${g.repo}/contents/${g.path}`,
+    {method:'PUT',headers:ghHeaders(g.token),body:JSON.stringify(body)});
+}
+
+// ── 合併遠端數據入本地 ──
+// 以 id 為主鍵（保留刻意保存嘅重複 URL）；遠端項冇 id 對應時，先搵同 URL
+// 且未同步過嘅本地項視為同一項。較新（updatedAt/createdAt）一方獲勝，
+// 本地回顧進度（sr）一定保留 — 避免 Telegram Bot 嘅空白版本覆蓋本地編輯。
+function mergeRemote(json) {
+  const remote=(json&&json.bookmarks)||[];
+  const remoteCats=(json&&json.categories)||[];
+  const before=JSON.stringify(S.bookmarks);
+  const remoteIds=new Set(remote.map(b=>b.id).filter(Boolean));
+  const localById=new Map(S.bookmarks.map(b=>[b.id,b]));
+  const usedLocal=new Set(), outIds=new Set();
+  const merged=[]; let added=0;
+  remote.forEach(rb=>{
+    let lb=(rb.id&&localById.get(rb.id))||null;
+    if(!lb) lb=S.bookmarks.find(b=>b.url===rb.url&&!usedLocal.has(b.id)&&!remoteIds.has(b.id))||null;
+    if(!lb){
+      const nb={...rb, id:rb.id||uid()};
+      if(outIds.has(nb.id)) return; // 遠端重複 id，跳過
+      outIds.add(nb.id); merged.push(nb); added++;
+      return;
+    }
+    usedLocal.add(lb.id);
+    const rT=new Date(rb.updatedAt||rb.createdAt||0), lT=new Date(lb.updatedAt||lb.createdAt||0);
+    const win=lT>=rT?{...lb}:{...rb, id:lb.id};
+    if(lb.sr&&!win.sr) win.sr=lb.sr;
+    if(outIds.has(win.id)) return;
+    outIds.add(win.id); merged.push(win);
+  });
+  S.bookmarks.forEach(b=>{ if(!usedLocal.has(b.id)&&!outIds.has(b.id)){ outIds.add(b.id); merged.push(b); } });
+  merged.sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+  S.bookmarks=merged;
+  S.categories=[...new Set([...S.categories,...remoteCats])];
+  return {added, changed: JSON.stringify(S.bookmarks)!==before};
+}
+
 async function githubSave() {
   const g=githubConf();
   if(!g.user||!g.repo||!g.token){toast('請先填寫 GitHub 設定');return;}
   S.github=g; localStorage.setItem(HK,JSON.stringify(g));
   syncMsg('上傳中…');
-  const content=btoa(unescape(encodeURIComponent(JSON.stringify(
-    {bookmarks:S.bookmarks,categories:S.categories,lastSync:new Date().toISOString()},null,2))));
   try {
-    const getR=await fetch(`https://api.github.com/repos/${g.user}/${g.repo}/contents/${g.path}`,
-      {headers:ghHeaders(g.token)});
-    const sha=getR.ok?(await getR.json()).sha||'':'';
-    const body={message:`Firefly sync ${new Date().toISOString().slice(0,10)}`,content};
-    if(sha) body.sha=sha;
-    const r=await fetch(`https://api.github.com/repos/${g.user}/${g.repo}/contents/${g.path}`,
-      {method:'PUT',headers:ghHeaders(g.token),body:JSON.stringify(body)});
+    const {sha}=await ghGetFile(g);
+    const r=await ghPutFile(g, sha, `Firefly sync ${todayStr()}`);
     if(r.ok){syncMsg('✅ 上傳成功 '+new Date().toLocaleTimeString('zh-TW'));toast('☁️ 已同步至 GitHub');}
     else{const e=await r.json();syncMsg('❌ 失敗：'+(e.message||r.status));}
   } catch(e){syncMsg('❌ 網絡錯誤：'+e.message);}
@@ -1828,38 +1919,16 @@ async function githubLoad() {
   S.github=g; localStorage.setItem(HK,JSON.stringify(g));
   syncMsg('載入中…');
   try {
-    const r=await fetch(`https://api.github.com/repos/${g.user}/${g.repo}/contents/${g.path}`,
-      {headers:ghHeaders(g.token)});
-    if(!r.ok) throw new Error('檔案不存在或設定錯誤（'+r.status+'）');
-    const d=await r.json();
-    const json=JSON.parse(decodeURIComponent(escape(atob(d.content.replace(/\n/g,'')))));
-    const remote=json.bookmarks||[];
-    const remoteCats=json.categories||[];
-    const localUrls=new Set(S.bookmarks.map(b=>b.url));
-    const newItems=remote.filter(b=>!localUrls.has(b.url));
-    const localOnlyCount=S.bookmarks.filter(b=>!remote.some(r=>r.url===b.url)).length;
-    if(!newItems.length&&!localOnlyCount){
+    const {json}=await ghGetFile(g);
+    if(!json){syncMsg('❌ 雲端檔案不存在或為空');return;}
+    const {added,changed}=mergeRemote(json);
+    if(!changed){
       syncMsg('✅ 已是最新 '+new Date().toLocaleTimeString('zh-TW'));
       toast('✅ 數據已是最新'); return;
     }
-    const remoteUrls=new Set(remote.map(b=>b.url));
-    const localByUrl=new Map(S.bookmarks.map(b=>[b.url,b]));
-    // 同一 URL 兩邊都有時：保留較新（updatedAt/createdAt）的版本，
-    // 並保留本地的回顧進度（sr）— 避免 Telegram Bot 的空白版本覆蓋本地編輯
-    const merged=remote.map(rb=>{
-      const lb=localByUrl.get(rb.url);
-      if(!lb) return {...rb, id: rb.id||uid()};
-      const rTime=new Date(rb.updatedAt||rb.createdAt||0), lTime=new Date(lb.updatedAt||lb.createdAt||0);
-      const win=lTime>=rTime?lb:{...rb, id: rb.id||lb.id};
-      if(lb.sr&&!win.sr) win.sr=lb.sr;
-      return win;
-    });
-    const localOnly=S.bookmarks.filter(b=>!remoteUrls.has(b.url));
-    S.bookmarks=[...merged,...localOnly].sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
-    S.categories=[...new Set([...S.categories,...remoteCats])];
     persist(); renderAll();
     syncMsg(`✅ 合併完成：共 ${S.bookmarks.length} 筆 · ${new Date().toLocaleTimeString('zh-TW')}`);
-    toast(`⬇️ 已合併！新增 ${newItems.length} 筆，共 ${S.bookmarks.length} 筆`);
+    toast(`⬇️ 已合併！新增 ${added} 筆，共 ${S.bookmarks.length} 筆`);
   } catch(e){syncMsg('❌ 載入失敗：'+e.message);}
 }
 
@@ -1886,14 +1955,14 @@ function importData(ev) {
   r.onload=e=>{
     try {
       const d=JSON.parse(e.target.result);
-      if(!Array.isArray(d.bookmarks)){alert('無效格式');return;}
+      if(!Array.isArray(d.bookmarks)){toast('❌ 無效格式：檔案缺少 bookmarks 陣列');return;}
       const existing=new Set(S.bookmarks.map(b=>b.url));
       // confirm() 在 iOS PWA 模式會靜默失敗，不可用；用戶選了檔案即視為確認
       const fresh=d.bookmarks.filter(b=>!existing.has(b.url)).map(b=>({...b, id: b.id||uid()}));
       S.bookmarks=[...S.bookmarks,...fresh];
       if(d.categories) S.categories=[...new Set([...S.categories,...d.categories])];
       persist(); renderAll(); toast(`✅ 已匯入 ${fresh.length} 筆`);
-    } catch(err){alert('解析失敗：'+err.message);}
+    } catch(err){toast('❌ 解析失敗：'+err.message);}
   };
   r.readAsText(f); ev.target.value='';
 }
@@ -1948,6 +2017,27 @@ export default {
       if (!target) return jsonRes({ error: 'missing url' }, 400);
       const meta = await fetchUrlMeta(target);
       return jsonRes(meta);
+    }
+
+    // GET /img — 圖片代理：解決小紅書等 CDN 防盜鏈 + 縮圖過期問題
+    if (request.method === 'GET' && reqUrl.pathname === '/img') {
+      const target = reqUrl.searchParams.get('url');
+      if (!target || !/^https?:\\/\\//.test(target)) return new Response('bad url', { status: 400 });
+      try {
+        const imgR = await fetch(target, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
+            'Referer': new URL(target).origin + '/',
+            'Accept': 'image/avif,image/webp,image/*,*/*;q=0.8'
+          },
+          cf: { cacheTtl: 86400, cacheEverything: true }
+        });
+        const ct = imgR.headers.get('content-type') || '';
+        if (!imgR.ok || !ct.startsWith('image/')) return new Response('not image', { status: 502 });
+        return new Response(imgR.body, {
+          headers: { 'Content-Type': ct, 'Cache-Control': 'public, max-age=86400', ...corsHeaders() }
+        });
+      } catch(e) { return new Response('fetch fail', { status: 502 }); }
     }
 
     // POST / — Telegram Bot webhook
@@ -2063,6 +2153,54 @@ async function fetchUrlMeta(url) {
     return { title, description: desc, image: thumb, type, source: src };
   }
 
+  // ── TikTok / 抖音：官方 oEmbed（免 key）
+  if (src === 'douyin' && url.includes('tiktok.com')) {
+    try {
+      const oe = await fetch(\`https://www.tiktok.com/oembed?url=\${encodeURIComponent(url)}\`);
+      if (oe.ok) {
+        const od = await oe.json();
+        if (od.title) return { title: deEnt(od.title).slice(0,200),
+          description: od.author_name ? \`\${od.author_name} 的 TikTok 影片\` : '',
+          image: od.thumbnail_url || '', type: 'video', source: src };
+      }
+    } catch(e) {}
+  }
+
+  // ── Twitter / X：官方 publish oEmbed（免 key）
+  if (src === 'twitter') {
+    try {
+      const oe = await fetch(\`https://publish.twitter.com/oembed?url=\${encodeURIComponent(url)}&omit_script=true\`);
+      if (oe.ok) {
+        const od = await oe.json();
+        const text = deEnt((od.html || '').replace(/<[^>]+>/g, ' ')).replace(/\\s+/g, ' ').trim();
+        if (text || od.author_name) return { title: (text || \`\${od.author_name} 的推文\`).slice(0,200),
+          description: od.author_name ? \`@\${od.author_name}\` : '',
+          image: '', type: 'post', source: src };
+      }
+    } catch(e) {}
+  }
+
+  // ── Reddit：任何帖 URL 加 .json 直接攞
+  if (/reddit\\.com\\/r\\//.test(url)) {
+    try {
+      const jr = await fetch(url.replace(/\\/?(\\?.*)?$/, '.json'), {
+        headers: { 'User-Agent': 'Firefly-Bot/1.0' }
+      });
+      if (jr.ok) {
+        const jd = await jr.json();
+        const post = jd?.[0]?.data?.children?.[0]?.data;
+        if (post?.title) {
+          let img = post.preview?.images?.[0]?.source?.url || '';
+          if (img) img = deEnt(img);
+          else if (/^https?:/.test(post.thumbnail||'')) img = post.thumbnail;
+          return { title: deEnt(post.title).slice(0,200),
+            description: deEnt(post.selftext||'').slice(0,500),
+            image: img, type: 'post', source: src };
+        }
+      }
+    } catch(e) {}
+  }
+
   try {
     const r = await fetch(url, {
       headers: {
@@ -2103,6 +2241,8 @@ async function fetchUrlMeta(url) {
     }
   } catch(e) {}
 
+  // 完全抓唔到封面 → 用 mshots 免費網頁截圖做後備
+  if (!thumb) thumb = 'https://s0.wp.com/mshots/v1/' + encodeURIComponent(url) + '?w=600';
   return { title: (title||url).slice(0,200), description: desc.slice(0,500), image: thumb, type, source: src };
 }
 
@@ -2372,24 +2512,18 @@ async function githubSilentSave(){
   if(dot){dot.className='sync-dot syncing';}
   const g=S.github;
   try{
-    const content=btoa(unescape(encodeURIComponent(JSON.stringify(
-      {bookmarks:S.bookmarks,categories:S.categories,lastSync:new Date().toISOString()},null,2))));
-    const getR=await fetch(`https://api.github.com/repos/${g.user}/${g.repo}/contents/${g.path}`,
-      {headers:ghHeaders(g.token)});
-    const sha=getR.ok?(await getR.json()).sha||'':'';
-    const body={message:`Firefly auto-sync ${new Date().toISOString().slice(0,10)}`,content};
-    if(sha) body.sha=sha;
-    let r=await fetch(`https://api.github.com/repos/${g.user}/${g.repo}/contents/${g.path}`,
-      {method:'PUT',headers:ghHeaders(g.token),body:JSON.stringify(body)});
+    const {sha}=await ghGetFile(g);
+    let r=await ghPutFile(g, sha, `Firefly auto-sync ${todayStr()}`);
     if(r.status===409){
-      // sha 過期（另一裝置/Telegram Bot 剛寫入）→ 重新取 sha 再試一次
-      const re=await fetch(`https://api.github.com/repos/${g.user}/${g.repo}/contents/${g.path}`,
-        {headers:ghHeaders(g.token)});
-      if(re.ok){
-        body.sha=(await re.json()).sha||'';
-        r=await fetch(`https://api.github.com/repos/${g.user}/${g.repo}/contents/${g.path}`,
-          {method:'PUT',headers:ghHeaders(g.token),body:JSON.stringify(body)});
+      // 撞版 = 遠端啱啱有新寫入（另一裝置/Telegram Bot）
+      // → 重新下載、合併入本地、再上傳合併後結果，唔可以直接覆蓋
+      const fresh=await ghGetFile(g);
+      if(fresh.json){
+        mergeRemote(fresh.json);
+        try{ localStorage.setItem(SK, JSON.stringify({bookmarks:S.bookmarks,categories:S.categories})); }catch(e){}
+        renderAll();
       }
+      r=await ghPutFile(g, fresh.sha, `Firefly auto-sync ${todayStr()}`);
     }
     if(dot){dot.className=r.ok?'sync-dot synced':'sync-dot err';
       setTimeout(()=>{if(dot)dot.className='sync-dot';},3000);}
@@ -2397,6 +2531,21 @@ async function githubSilentSave(){
   }catch(e){
     if(dot){dot.className='sync-dot err';setTimeout(()=>{if(dot)dot.className='sync-dot';},3000);}
   }
+}
+// 開 App 時自動載入雲端新項目（有開自動同步先會行）
+async function autoLoadOnStart(){
+  const g=S.github;
+  if(!S.autoSync||!g.user||!g.repo||!g.token) return;
+  try{
+    const {json}=await ghGetFile(g);
+    if(!json) return;
+    const {added,changed}=mergeRemote(json);
+    if(changed){
+      try{ localStorage.setItem(SK, JSON.stringify({bookmarks:S.bookmarks,categories:S.categories})); }catch(e){}
+      renderAll(); renderRevDot();
+      if(added>0) toast(`⬇️ 已自動同步 ${added} 筆新書籤`);
+    }
+  }catch(e){}
 }
 function saveAutoSyncSetting(){
   S.autoSync=document.getElementById('as-toggle').checked;
@@ -2422,12 +2571,22 @@ function copyShortcutInstructions(){
 }
 function checkUrlParams(){
   const p=new URLSearchParams(location.search);
-  if(p.get('add')==='1'&&p.get('url')){
+  // add=1（iOS 捷徑）或 PWA Share Target（Android/桌面，只帶 url/text/title）
+  if(p.get('add')==='1'||p.has('url')||p.has('text')){
     // iOS 捷徑通常不會 URL-encode 分享連結，含 & 的網址（如 YouTube &t=）
     // 會被 URLSearchParams 截斷 → 手動取 url= 之後的全部內容
     const m=location.search.match(/[?&]url=(.+)$/);
-    let sharedUrl=m?m[1]:p.get('url');
-    try{ if(/%3A|%2F/i.test(sharedUrl)) sharedUrl=decodeURIComponent(sharedUrl); }catch(e){}
+    let sharedUrl=m?m[1]:(p.get('url')||'');
+    // 但如果 title/text 參數跟在 url 後面，要先切走
+    sharedUrl=sharedUrl.replace(/&(?:title|text|share)=[\s\S]*$/,'');
+    // 只喺成條 URL 被 encode 過（:// 變 %3A%2F%2F）先 decode，避免誤傷 URL 自身嘅 %xx
+    try{ if(/^https?%3A/i.test(sharedUrl)||/%3A%2F%2F/i.test(sharedUrl)) sharedUrl=decodeURIComponent(sharedUrl); }catch(e){}
+    // Share Target 有時將連結放喺 text 而唔係 url
+    if(!sharedUrl&&p.get('text')){
+      const tm=(p.get('text')||'').match(/https?:\/\/\S+/);
+      if(tm) sharedUrl=tm[0];
+    }
+    if(!sharedUrl) return;
     const sharedTitle=p.get('title')||'';
     history.replaceState({},'',location.pathname);
     openAdd();
@@ -2449,6 +2608,7 @@ renderAll();
 loadGithubForm();
 renderRevDot();
 checkUrlParams();
+autoLoadOnStart();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 setTimeout(()=>{
   const aiStatus=document.getElementById('ai-status');
