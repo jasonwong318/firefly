@@ -1043,12 +1043,27 @@ function renderCards() {
   document.getElementById('card-grid').innerHTML=list.map(cardHTML).join('');
 }
 
-// 防盜鏈 CDN（小紅書/IG/FB/抖音）經 Worker /img 代理載入 — 解決縮圖唔顯示同過期問題
-const HOTLINK_CDN=/sns-webpic|xhscdn|xiaohongshu|fbcdn\.net|cdninstagram|instagram\.com|douyinpic|tiktokcdn|byteimg|pstatp/i;
-function thumbSrc(t){
-  if(!t) return '';
-  if(S.workerUrl&&HOTLINK_CDN.test(t)) return `${S.workerUrl}/img?url=${encodeURIComponent(t)}`;
-  return t;
+// 縮圖載入策略：先直接載入（no-referrer 喺用戶自己 IP 上成功率最高，
+// 小紅書 CDN 會封鎖數據中心 IP，所以唔可以 proxy-first）
+// → 失敗先退去 Worker /img 代理 → 再失敗顯示 placeholder
+function thumbErr(el){
+  const step=el.dataset.p||'';
+  if(!step&&S.workerUrl&&el.dataset.orig){
+    el.dataset.p='1';
+    el.src=`${S.workerUrl}/img?url=${encodeURIComponent(el.dataset.orig)}`;
+    return;
+  }
+  if(step!=='2'&&el.dataset.page){
+    // 圖片 URL 過期（小紅書簽名 URL 常見）→ 改用網頁截圖
+    el.dataset.p='2';
+    el.src=`https://s0.wp.com/mshots/v1/${encodeURIComponent(el.dataset.page)}?w=600`;
+    return;
+  }
+  if(el.dataset.hide){ el.style.display='none'; return; }
+  const ph=document.createElement('div');
+  ph.className=el.dataset.phcls||'card-thumb-ph';
+  ph.textContent=el.dataset.icon||'🔗';
+  el.replaceWith(ph);
 }
 
 function cardHTML(b) {
@@ -1057,7 +1072,7 @@ function cardHTML(b) {
   const date=fmtDate(b.createdAt);
   const srBadge=b.sr?`<span class="sr-badge">📅 回顧中</span>`:'';
   const th=b.thumbnail
-    ?`<img class="card-thumb" src="${esc(thumbSrc(b.thumbnail))}" loading="lazy" referrerpolicy="no-referrer" onerror="this.outerHTML='<div class=card-thumb-ph>${s.icon}</div>'">`
+    ?`<img class="card-thumb" src="${esc(b.thumbnail)}" data-orig="${esc(b.thumbnail)}" data-page="${esc(b.url||'')}" data-icon="${s.icon}" data-phcls="card-thumb-ph" loading="lazy" referrerpolicy="no-referrer" onerror="thumbErr(this)">`
     :`<div class="card-thumb-ph">${s.icon}</div>`;
   // Use data attributes to avoid any HTML quoting issues
   return `<div class="card card-item" data-id="${b.id}" role="button" tabindex="0">
@@ -1507,7 +1522,7 @@ function openDet(id) {
   if(!b) return;
   const s=SRC[b.source]||SRC.other;
   document.getElementById('det-ttl').textContent=b.title||b.url;
-  const thumb=b.thumbnail?`<img class="det-thumb" src="${esc(thumbSrc(b.thumbnail))}" onerror="this.style.display='none'" loading="lazy" referrerpolicy="no-referrer">`:'';
+  const thumb=b.thumbnail?`<img class="det-thumb" src="${esc(b.thumbnail)}" data-orig="${esc(b.thumbnail)}" data-page="${esc(b.url||'')}" data-hide="1" onerror="thumbErr(this)" loading="lazy" referrerpolicy="no-referrer">`:'';
   const tags=(b.tags||[]).map(t=>`<div class="det-tag" data-det-tag="${esc(t)}">#${esc(t)}</div>`).join('');
   const date=b.createdAt?new Date(b.createdAt).toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'}):'';
   const srInfo=b.sr?`<span class="ibd">📅 下次 ${b.sr.nextReview||'今天'}</span>`:'';
@@ -1725,7 +1740,7 @@ function renderReview() {
     <div class="rev-progress"><div class="rev-progress-bar" style="width:${pct}%"></div></div>
     <div class="rev-card">
       ${b.thumbnail
-        ?`<img class="rev-card-img" src="${esc(thumbSrc(b.thumbnail))}" onerror="this.outerHTML='<div class=rev-card-ph>${s.icon}</div>'" loading="lazy" referrerpolicy="no-referrer">`
+        ?`<img class="rev-card-img" src="${esc(b.thumbnail)}" data-orig="${esc(b.thumbnail)}" data-page="${esc(b.url||'')}" data-icon="${s.icon}" data-phcls="rev-card-ph" onerror="thumbErr(this)" loading="lazy" referrerpolicy="no-referrer">`
         :`<div class="rev-card-ph">${s.icon}</div>`}
       <div class="rev-card-body">
         <div class="rev-card-src">
@@ -2024,10 +2039,15 @@ export default {
       const target = reqUrl.searchParams.get('url');
       if (!target || !/^https?:\\/\\//.test(target)) return new Response('bad url', { status: 400 });
       try {
+        // Referer 用平台主站（唔係 CDN 自身）先過到防盜鏈
+        let ref = new URL(target).origin + '/';
+        if (/xhscdn|xiaohongshu/i.test(target)) ref = 'https://www.xiaohongshu.com/';
+        else if (/cdninstagram|fbcdn/i.test(target)) ref = 'https://www.instagram.com/';
+        else if (/douyinpic|byteimg|tiktokcdn/i.test(target)) ref = 'https://www.douyin.com/';
         const imgR = await fetch(target, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
-            'Referer': new URL(target).origin + '/',
+            'Referer': ref,
             'Accept': 'image/avif,image/webp,image/*,*/*;q=0.8'
           },
           cf: { cacheTtl: 86400, cacheEverything: true }
