@@ -21,13 +21,18 @@
       "id": "mr8iglmncgu",
       "url": "https://www.facebook.com/share/1JVV14caiK/?mibextid=wwXIfr",
       "title": "Facebook",
-      "description": "",
-      "thumbnail": "",
+      "description": "🚨 You can now convert NotebookLM sources into beautifully illustrated children's storybooks ready to sell. \nFollow these steps: 👇👇",
+      "thumbnail": "https://s0.wp.com/mshots/v1/https%3A%2F%2Fwww.facebook.com%2Fshare%2F1JVV14caiK%2F%3Fmibextid%3DwwXIfr?w=600",
       "source": "facebook",
-      "tags": [],
-      "category": "",
+      "tags": [
+        "NotebookLM",
+        "兒童故事書",
+        "AI工具"
+      ],
+      "category": "科技教學 & AI",
       "createdAt": "2026-07-06T00:57:50.207Z",
-      "type": "article"
+      "type": "post",
+      "updatedAt": "2026-07-07T03:17:15.499Z"
     },
     {
       "id": "mr8h13m7s2y",
@@ -905,5 +910,5 @@
     "影片",
     "圖片欣賞"
   ],
-  "lastSync": "2026-07-07T03:17:01.982Z"
+  "lastSync": "2026-07-07T03:17:18.562Z"
 }
