@@ -5,12 +5,17 @@
       "title": "内审人必备核心能力",
       "description": "",
       "source": "xiaohongshu",
-      "category": "",
-      "tags": [],
+      "category": "CIA & CISA",
+      "tags": [
+        "內審",
+        "核心能力",
+        "職業發展"
+      ],
       "type": "article",
       "thumbnail": "http://sns-webpic-qc.xhscdn.com/202607071111/3eba3f7f79d8cc74e010e359f14a8bf2/1040g2sg3217mt9aa7ok05q7dnapdtsh6hjfmjbo!h5_1080jpg",
       "id": "mra2pipjgyq9",
-      "createdAt": "2026-07-07T03:12:24.823Z"
+      "createdAt": "2026-07-07T03:12:24.823Z",
+      "updatedAt": "2026-07-07T03:12:51.981Z"
     },
     {
       "id": "mr8iglmncgu",
@@ -896,5 +901,5 @@
     "影片",
     "圖片欣賞"
   ],
-  "lastSync": "2026-07-07T03:12:30.217Z"
+  "lastSync": "2026-07-07T03:12:57.683Z"
 }
